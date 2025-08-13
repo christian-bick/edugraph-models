@@ -6,20 +6,15 @@ import torch
 import math
 from PIL import Image
 
-# 1. Import the correct custom classes from colpali and transformers
-try:
-    from colpali_engine.models import BiQwen2_5, BiQwen2_5_Processor
-    from transformers.utils.import_utils import is_flash_attn_2_available
-except ImportError:
-    print("Error: 'colpali' library not found.")
-    print("Please install it by running: pip install git+https://github.com/illuin-tech/colpali.git")
-    exit()
+from colpali_engine.models import BiQwen2_5, BiQwen2_5_Processor
+from transformers.utils.import_utils import is_flash_attn_2_available
 
 
 def generate_nomic_embeddings(directory_path: str, batch_size: int = 8):
     """
     Generates embeddings for all .png files in the specified directory
     using nomic-embed-multimodal-3b with the correct colpali engine.
+    Embeddings are stored as line-separated JSON arrays in a structured output directory.
     """
     try:
         # --- Model Loading ---
@@ -58,7 +53,15 @@ def generate_nomic_embeddings(directory_path: str, batch_size: int = 8):
             print(f"No .png files found in the directory: {directory_path}")
             return
 
-        output_dir = os.path.join(directory_path, "out")
+        # --- Output Directory Calculation ---
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        project_root = os.path.abspath(os.path.join(script_dir, "..", "..", "..", ".."))
+        base_output_dir = os.path.join(project_root, "out")
+
+        # Get the last component of the input directory path
+        input_dir_basename = os.path.basename(os.path.abspath(directory_path))
+        output_dir = os.path.join(base_output_dir, input_dir_basename)
+
         os.makedirs(output_dir, exist_ok=True)
         print(f"Output directory will be: {output_dir}")
 
