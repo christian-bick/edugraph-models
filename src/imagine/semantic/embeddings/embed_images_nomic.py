@@ -1,11 +1,13 @@
-import os
-import glob
 import argparse
+import glob
 import json
-from PIL import Image
-import torch
-from transformers import AutoProcessor, AutoModel
 import math
+import os
+import sys
+import torch
+import transformers
+from PIL import Image
+from transformers import AutoProcessor, AutoModel
 
 
 def generate_nomic_embeddings(directory_path: str, batch_size: int = 8):
@@ -13,6 +15,17 @@ def generate_nomic_embeddings(directory_path: str, batch_size: int = 8):
     Generates embeddings for all .png files in the specified directory
     using the nomic-embed-multimodal-3b model and stores them as line-separated JSON arrays.
     """
+
+    # --- START: Diagnostic Code ---
+    # Add this block right at the beginning of the function
+    print("--- RUNTIME DIAGNOSTICS ---")
+    print(f"Python Executable: {sys.executable}")
+    print(f"Transformers Version: {transformers.__version__}")
+    print(f"Transformers Path: {transformers.__file__}")
+    print(f"Torch Version: {torch.__version__}")
+    print("---------------------------\n")
+    # --- END: Diagnostic Code ---
+
     try:
         # 1. Automatic device selection (GPU for performance)
         if torch.cuda.is_available():
