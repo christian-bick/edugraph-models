@@ -10,12 +10,13 @@ dependencies = [
     "google-genai>=1.27.0",
     "google-cloud-storage>=2.19.0",
     "google-cloud-aiplatform>=1.105.0",
-    "transformers>=4.55.2",
-    "torch>=2.8.0",
-    "torchvision>=0.23.0",
+    "torch>=2.7.0",
+    "torchaudio==2.7.0",
+    "torchvision>=0.22.0",
     "pillow>=11.3.0",
     "accelerate>=0.33.0",
     "hf-xet>=1.1.7",
+    "colpali-engine",
 ]
 
 [build-system]
@@ -30,7 +31,7 @@ dev = [
 
 [[tool.uv.index]]
 name = "pytorch-cuda"
-url = "https://download.pytorch.org/whl/cu129  "
+url = "https://download.pytorch.org/whl/cu128"
 explicit = true
 
 [tool.uv.sources]
@@ -40,3 +41,4 @@ torch = [
 torchvision = [
   { index = "pytorch-cuda" },
 ]
+colpali-engine = { git = "https://github.com/illuin-tech/colpali.git" }
