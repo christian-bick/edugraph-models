@@ -1,0 +1,123 @@
+You are presented with learning material that you shall classify using three taxonomies to classify the material
+across three independent dimensions:
+
+- Area: http://edugraph.io/edu#Area
+- Ability: http://edugraph.io/edu#Ability
+- Scope: http://edugraph.io/edu#Scope
+
+The rest of the prompt is divided into three parts:
+
+A) Explanation: An explanation of the taxonomy's structure
+B) Taxonomy: The taxonomy itself
+C) Classification instructions: A detailed instruction on how to classify the material in the terms of the taxonomy
+
+A) Explanation =========================================================================================================
+
+You know that a taxonomy starts (and that another ends) when you encounter a single "#" followed by the name and URI of the
+dimension like this:
+
+- # Area (http://edugraph.io/edu#Area)
+- # Ability (http://edugraph.io/edu#Ability)
+- # Scope (http://edugraph.io/edu#Scope)
+
+The taxonomies consist of two parts, an outline and a definition section.
+
+You will know that the outline section starts when you see the header "## Outline"
+
+You will know that the definition section starts when you see the header "## Definitions"
+
+Between the next "---" you find an example of an outline for gastronomic terms:
+
+---
+1 Drinks (http://example.com/foo#Drinks)
+1.1 Non Alcoholic (http://example.com/foo#NonAlcoholic)
+1.2 Alcoholic (http://example.com/foo#Alcoholic)
+1.2.1 Beer (http://example.com/foo#Beer)
+1.2.2 Wine (http://example.com/foo#Wine)
+2 Food (http://example.com/foo#Food)
+2.1 Italian (http://example.com/foo#Italian)
+2.2 French (http://example.com/foo#French)
+---
+
+Each item in the outline consists of an index, a term and a IRI consequently:
+
+* "1 Drinks (http://example.com/foo#Drinks)" describes the term "Drinks" at index "1" with IRI "http://example.com/foo#Drinks"
+* "1.1 Non Alcoholic (http://example.com/foo#NonAlcoholic)" describes the term "Non Alcoholic" at index "1.1" with IRI "http://example.com/foo#NonAlcoholic
+
+Further, the index in the outline expresses a part-of relationship, consequently:
+
+* "1.1" and "1.2" are part of "1" and
+* "1.2.1" and "1.2.2" are part of "1.2"
+* "Alcoholic" is part of "Drinks".
+* "Food" has "Italian" and "French" as parts
+* "Drinks" and "Food" are root elements of the hierarchy
+* "Beer", "Wine", "Italian" and "French" are leaf elements of the hierarchy
+
+Between the next "---" you find an example of definitions for gastronomic terms:
+
+---
+### 1 Drinks (http://example.com/foo#Drinks)
+
+All types of beverages.
+
+### 1.1 Non Alcoholic (http://example.com/foo#NonAlcoholic)
+
+Beverages without alcohol.
+
+### 1.2 Alcoholic (http://example.com/foo#Alcoholic)
+
+Beverages that contain alcohol.
+
+### 1.2.1 Beer (http://example.com/foo#Beer)
+
+A malty alcoholic drink.
+
+### 1.2.2 Wine (http://example.com/foo#Wine)
+
+An alcoholic drink made of grapes.
+
+### 2 Food (http://example.com/foo#Food)
+
+### 2.1 Italian (http://example.com/foo#Italian)
+
+Dishes that are typically prepared in Italy.
+
+### 2.2 French (http://example.com/foo#French)
+
+Dishes that are typically prepared in France.
+---
+
+Each definition has a title, definition and IRI. The title's index, term and IRI always exactly match
+the outline. The outline therefore functions like an index for each term's definition. The definition of each term then
+follows in the following paragraphs before a new term title is encountered, indicated by "###".
+
+Consequently:
+
+* "### 1 Drinks (http://example.com/foo#Drinks)" is the title with index "1" for the term "Drinks" and URI "http://example.com/foo#Drinks"
+* "All types of beverages." is the definition of the term "Drinks"
+* "### 1.2 Alcoholic (http://example.com/foo#Alcoholic)" is the title with index "1.2" for the term "Alcoholic" and URI "http://example.com/foo#Alcoholic
+* "Beverages that contain alcohol." is the definition of the term "Alcoholic"
+
+Sometimes, only an empty definition is provided for a term. However, when available, make use of the definition for classification.
+
+B) Taxonomies ==========================================================================================================
+
+{0}
+
+{1}
+
+{2}
+
+C) Classification Instruction ==========================================================================================
+
+Classify the provided material in the following steps:
+
+1) Determine if the material is learning material and if not return the error "NotLearningMaterial"
+2) Determine if the material is learning material from the area of math and if not return the error "NotMathMaterial"
+3) Use the taxonomy http://edugraph.io/edu#Area to determine the IRIs of the terms that best describe the material in the Area dimension
+4) Use the taxonomy http://edugraph.io/edu#Scope to determine the IRIs of the terms that best describe the material in the Scope dimension
+5) Use the taxonomy http://edugraph.io/edu#Ability to determine the IRIs of the terms that best describe the material in the Ability dimension
+6) Clean up the classification results:
+6.1) Eliminate any duplicates
+6.2) Remove parent terms if children terms are available
+7) Return the IRIs of the matched terms in the requested response schema and nothing else

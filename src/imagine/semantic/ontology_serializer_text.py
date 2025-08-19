@@ -1,16 +1,11 @@
 from imagine.semantic.ontology_util import *
 
-taxonomy_header_template = "Taxonomy of {0}\n\n"
-outline_header_template = "\nA) {0} Outline\n\n"
-definition_header_template = "\nB) {0} Definitions\n\n"
 
-
-def build_taxonomy(name, entities):
-    taxonomy = ""
-    taxonomy += __build_taxonomy_header(name)
-    taxonomy += __build_outline_header(name)
+def build_taxonomy(dimension_name, dimension_iri, entities):
+    taxonomy = f"# {dimension_name} ({dimension_iri})\n\n"
+    taxonomy += __build_outline_header()
     taxonomy += build_outline([1], entities)
-    taxonomy += __build_definition_header(name)
+    taxonomy += __build_definition_header()
     taxonomy += build_definitions([1], entities)
     return taxonomy
 
@@ -48,7 +43,7 @@ def build_definitions(hierarchy, entities):
 
 
 def __build_outline_item(hierarchy, entity):
-    return __build_outline_index(hierarchy) + ' ' + natural_name_of_entity(entity) + '\n'
+    return f"{__build_outline_index(hierarchy)} {natural_name_of_entity(entity)} ({entity.iri})\n"
 
 
 def __build_definition_item(hierarchy, entity):
@@ -56,22 +51,18 @@ def __build_definition_item(hierarchy, entity):
     definition = ""
 
     if len(entity_definition) > 0:
-        definition += __build_outline_item(hierarchy, entity)
+        definition += f"### {__build_outline_item(hierarchy, entity)}"
         definition += "\n{0}\n\n".format(entity_definition)
 
     return definition
 
 
-def __build_taxonomy_header(name):
-    return "Taxonomy of {0}\n\n".format(name)
+def __build_outline_header():
+    return "## Outline\n\n"
 
 
-def __build_outline_header(name):
-    return "A) Outline of {0}\n\n".format(name)
-
-
-def __build_definition_header(name):
-    return "\n\nB) Definitions of {0}\n\n".format(name)
+def __build_definition_header():
+    return "\n\n## Definitions\n\n"
 
 
 def __build_outline_index(hierarchy):

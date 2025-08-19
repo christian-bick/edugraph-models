@@ -91,7 +91,7 @@ class GoogleMultiModalTaxonomyEmbedder:
 
 if __name__ == "__main__":
     load_dotenv()
-    onto_path = "https://github.com/christian-bick/edugraph-ontology/releases/download/0.1.2/core-ontology.rdf"
+    onto_path = "https://github.com/christian-bick/edugraph-ontology/releases/download/0.3.6/core-ontology.rdf"
 
     print("Loading ontology")
     ontology = load_from_path(onto_path)
