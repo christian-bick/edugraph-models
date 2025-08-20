@@ -1,9 +1,9 @@
-
 import argparse
 import json
 import os
 
 from merge_meta_files import merge_meta_from_gcs
+
 
 def _get_cached_or_fresh_data(bucket_name, no_cache):
     """
@@ -11,7 +11,7 @@ def _get_cached_or_fresh_data(bucket_name, no_cache):
     from GCS and updating the cache.
     """
     cache_file = "./temp/meta_data_cache.json"
-    
+
     # 1. Check for and load from cache if appropriate
     if not no_cache and os.path.exists(cache_file):
         print(f"Cache hit. Loading intermediate data from {cache_file}")
@@ -27,7 +27,7 @@ def _get_cached_or_fresh_data(bucket_name, no_cache):
         print("Cache ignored (--no-cache). Fetching fresh data from GCS...")
     else:
         print(f"Cache miss. Fetching fresh data from GCS...")
-    
+
     intermediate_data = merge_meta_from_gcs(bucket_name)
 
     # 3. Update the cache
@@ -39,7 +39,7 @@ def _get_cached_or_fresh_data(bucket_name, no_cache):
             print(f"Cache updated with {len(intermediate_data)} items at {cache_file}")
         except IOError as e:
             print(f"Warning: Could not write to cache file {cache_file}. Error: {e}")
-            
+
     return intermediate_data
 
 
@@ -72,10 +72,23 @@ def generate_training_file(bucket_name, output_file, no_cache=False):
                 output_labels[key] = [{'iri': iri} for iri in iri_list]
             else:
                 print(f"Warning: Value for key '{key}' in labels is not a list. Skipping key. Value: {iri_list}")
-        
+
+        user_content = [
+            {
+                "text": "Classify the educational concepts in this document."},
+            {
+                "fileData": {
+                    "mimeType": "application/pdf",
+                    "fileUri": item['questionDoc']
+                }
+            }
+        ]
+
         final_item = {
-            'input': item.get('questionDoc', ''),
-            'output': output_labels
+            "messages": [
+                {"role": "user", "content": user_content},
+                {"role": "model", "content": [{"text": json.dumps(output_labels)}]}
+            ]
         }
         final_training_data.append(final_item)
 
@@ -87,7 +100,8 @@ def generate_training_file(bucket_name, output_file, no_cache=False):
 
     try:
         with open(output_file, 'w', encoding='utf-8') as f:
-            json.dump(final_training_data, f, indent=2)
+            for item in final_training_data:
+                f.write(json.dumps(item) + '\n')
         print(f"Successfully wrote {len(final_training_data)} items to {output_file}")
     except IOError as e:
         print(f"Error writing to output file {output_file}: {e}")
@@ -105,7 +119,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--output_file",
         type=str,
-        default="./temp/training_data.json",
+        default="./temp/training_data.jsonl",
         help="The path for the output training data file."
     )
     parser.add_argument(
@@ -113,9 +127,9 @@ if __name__ == "__main__":
         action="store_true",
         help="Ignore any existing cache and fetch fresh data from GCS."
     )
-    
+
     args = parser.parse_args()
-    
+
     try:
         generate_training_file(args.bucket_name, args.output_file, args.no_cache)
     except (RuntimeError, FileNotFoundError, ValueError, json.JSONDecodeError) as e:
