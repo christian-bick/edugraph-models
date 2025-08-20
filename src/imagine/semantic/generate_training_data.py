@@ -5,14 +5,51 @@ import os
 
 from merge_meta_files import merge_meta_from_gcs
 
-def generate_training_file(bucket_name, output_file):
+def _get_cached_or_fresh_data(bucket_name, no_cache):
     """
-    Generates a training data file by fetching and merging data from GCS.
+    Handles the logic of reading from a local cache or fetching fresh data
+    from GCS and updating the cache.
     """
-    print(f"Generating training data from bucket: {bucket_name}")
+    cache_file = "./temp/meta_data_cache.json"
     
-    # 1. Get intermediate data from the merge script
+    # 1. Check for and load from cache if appropriate
+    if not no_cache and os.path.exists(cache_file):
+        print(f"Cache hit. Loading intermediate data from {cache_file}")
+        try:
+            with open(cache_file, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except (IOError, json.JSONDecodeError) as e:
+            print(f"Warning: Could not read cache file {cache_file}. Error: {e}. Fetching fresh data.")
+            # Fall through to fetch fresh data
+
+    # 2. If no cache was used or cache failed, fetch from GCS
+    if no_cache:
+        print("Cache ignored (--no-cache). Fetching fresh data from GCS...")
+    else:
+        print(f"Cache miss. Fetching fresh data from GCS...")
+    
     intermediate_data = merge_meta_from_gcs(bucket_name)
+
+    # 3. Update the cache
+    if intermediate_data:
+        try:
+            os.makedirs(os.path.dirname(cache_file), exist_ok=True)
+            with open(cache_file, 'w', encoding='utf-8') as f:
+                json.dump(intermediate_data, f, indent=2)
+            print(f"Cache updated with {len(intermediate_data)} items at {cache_file}")
+        except IOError as e:
+            print(f"Warning: Could not write to cache file {cache_file}. Error: {e}")
+            
+    return intermediate_data
+
+
+def generate_training_file(bucket_name, output_file, no_cache=False):
+    """
+    Generates a training data file by fetching and merging data from GCS,
+    using a local cache to speed up subsequent runs.
+    """
+    # 1. Get data using the caching helper function
+    intermediate_data = _get_cached_or_fresh_data(bucket_name, no_cache)
 
     if not intermediate_data:
         print("No intermediate data found. Output file will not be created.")
@@ -22,7 +59,6 @@ def generate_training_file(bucket_name, output_file):
     print(f"Mapping {len(intermediate_data)} items to the final training format...")
     final_training_data = []
     for item in intermediate_data:
-        # The 'input' is now directly the 'questionDoc' field (which contains the full GCS URI)
         final_item = {
             'input': item['questionDoc'],
             'output': item['labels']
@@ -58,11 +94,16 @@ if __name__ == "__main__":
         default="./temp/training_data.json",
         help="The path for the output training data file."
     )
+    parser.add_argument(
+        "--no-cache",
+        action="store_true",
+        help="Ignore any existing cache and fetch fresh data from GCS."
+    )
     
     args = parser.parse_args()
     
     try:
-        generate_training_file(args.bucket_name, args.output_file)
+        generate_training_file(args.bucket_name, args.output_file, args.no_cache)
     except (RuntimeError, FileNotFoundError, ValueError, json.JSONDecodeError) as e:
         print(f"Error: {e}")
         exit(1)
