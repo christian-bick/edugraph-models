@@ -59,9 +59,23 @@ def generate_training_file(bucket_name, output_file, no_cache=False):
     print(f"Mapping {len(intermediate_data)} items to the final training format...")
     final_training_data = []
     for item in intermediate_data:
+        # Ensure 'labels' is a dictionary
+        labels = item.get('labels', {})
+        if not isinstance(labels, dict):
+            print(f"Warning: 'labels' for item is not a dictionary. Skipping item. Labels: {labels}")
+            continue
+
+        # Map the labels to the desired output structure
+        output_labels = {}
+        for key, iri_list in labels.items():
+            if isinstance(iri_list, list):
+                output_labels[key] = [{'iri': iri} for iri in iri_list]
+            else:
+                print(f"Warning: Value for key '{key}' in labels is not a list. Skipping key. Value: {iri_list}")
+        
         final_item = {
-            'input': item['questionDoc'],
-            'output': item['labels']
+            'input': item.get('questionDoc', ''),
+            'output': output_labels
         }
         final_training_data.append(final_item)
 
