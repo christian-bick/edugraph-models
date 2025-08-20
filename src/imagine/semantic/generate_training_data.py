@@ -5,6 +5,12 @@ import os
 from merge_meta_files import merge_meta_from_gcs
 
 
+def _read_file_content(file_path):
+    """Reads the content of a given file."""
+    with open(file_path, 'r', encoding='utf-8') as f:
+        return f.read()
+
+
 def _get_cached_or_fresh_data(bucket_name, no_cache):
     """
     Handles the logic of reading from a local cache or fetching fresh data
@@ -43,11 +49,13 @@ def _get_cached_or_fresh_data(bucket_name, no_cache):
     return intermediate_data
 
 
-def generate_training_file(bucket_name, output_file, no_cache=False):
+def generate_training_file(bucket_name, output_file, system_instruction_file, prompt, no_cache=False):
     """
     Generates a training data file by fetching and merging data from GCS,
     using a local cache to speed up subsequent runs.
     """
+    system_instruction = _read_file_content(system_instruction_file)
+
     # 1. Get data using the caching helper function
     intermediate_data = _get_cached_or_fresh_data(bucket_name, no_cache)
 
@@ -75,7 +83,8 @@ def generate_training_file(bucket_name, output_file, no_cache=False):
 
         user_content = [
             {
-                "text": "Classify the educational concepts in this document."},
+                "text": prompt
+            },
             {
                 "fileData": {
                     "mimeType": "application/pdf",
@@ -85,6 +94,7 @@ def generate_training_file(bucket_name, output_file, no_cache=False):
         ]
 
         final_item = {
+            "systemInstruction": {"parts": [{"text": json.dumps(system_instruction)}]},
             "contents": [
                 {"role": "user", "content": user_content},
                 {"role": "model", "content": [{"text": json.dumps(output_labels)}]}
@@ -98,13 +108,11 @@ def generate_training_file(bucket_name, output_file, no_cache=False):
         print(f"Creating output directory: {output_dir}")
         os.makedirs(output_dir)
 
-    try:
-        with open(output_file, 'w', encoding='utf-8') as f:
-            for item in final_training_data:
-                f.write(json.dumps(item) + '\n')
-        print(f"Successfully wrote {len(final_training_data)} items to {output_file}")
-    except IOError as e:
-        print(f"Error writing to output file {output_file}: {e}")
+    with open(output_file, 'w', encoding='utf-8') as f:
+        for item in final_training_data:
+            f.write(json.dumps(item) + '\n')
+
+    print(f"Successfully wrote {len(final_training_data)} items to {output_file}")
 
 
 if __name__ == "__main__":
@@ -127,11 +135,25 @@ if __name__ == "__main__":
         action="store_true",
         help="Ignore any existing cache and fetch fresh data from GCS."
     )
+    parser.add_argument(
+        "--system_instruction_file",
+        type=str,
+        default="./temp/generated_instruction.txt",
+        help="Path to a file containing system instructions (e.g., taxonomy definition)."
+    )
 
     args = parser.parse_args()
 
+    prompt = "Classify the provided learning material"
+
     try:
-        generate_training_file(args.bucket_name, args.output_file, args.no_cache)
-    except (RuntimeError, FileNotFoundError, ValueError, json.JSONDecodeError) as e:
+        generate_training_file(
+            bucket_name=args.bucket_name,
+            output_file=args.output_file,
+            no_cache=args.no_cache,
+            system_instruction_file=args.system_instruction_file,
+            prompt=prompt,
+        )
+    except (RuntimeError, FileNotFoundError, IOError, ValueError, json.JSONDecodeError) as e:
         print(f"Error: {e}")
         exit(1)
