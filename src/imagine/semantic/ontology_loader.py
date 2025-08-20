@@ -28,7 +28,8 @@ def load_from_path(path):
             else:
                 print(f"Downloading ontology from {path}...")
                 try:
-                    urllib.request.urlretrieve(path, cached_filepath)
+                    with urllib.request.urlopen(path, timeout=10) as response, open(cached_filepath, 'wb') as out_file:
+                        out_file.write(response.read())
                     print(f"Cached ontology at: {cached_filepath}")
                     path = cached_filepath
                 except Exception as e:
