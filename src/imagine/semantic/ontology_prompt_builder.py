@@ -20,7 +20,7 @@ def generate_from_template(template, onto):
 
 if __name__ == "__main__":
     ontology = load_from_path(
-        "https://github.com/christian-bick/edugraph-ontology/releases/download/v0.3.6/core-ontology.rdf")
+        "https://github.com/christian-bick/edugraph-ontology/releases/download/v0.4.0/core-ontology.rdf")
     input_file = "./prompts/classify_with_taxonomy_v1.txt"
     output_file = "./temp/generated_prompt.txt"
     prompt = generate_from_template_file(input_file, ontology)
