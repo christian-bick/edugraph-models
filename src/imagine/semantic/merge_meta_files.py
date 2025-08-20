@@ -7,10 +7,13 @@ from google.cloud import storage
 
 load_dotenv()
 
-def merge_meta_from_gcs(bucket_name, output_file):
+def merge_meta_from_gcs(bucket_name):
     """
-    Parses folders in a GCS bucket, reads meta.json from each,
-    and merges them into a single file, keeping only specified fields.
+    Parses folders in a GCS bucket, reads meta.json, and creates a list of
+    intermediate data items.
+
+    This function is strict: any missing file or malformed data will
+    raise an exception.
     """
     print(f"Starting to process bucket: {bucket_name}")
     
@@ -18,22 +21,19 @@ def merge_meta_from_gcs(bucket_name, output_file):
         storage_client = storage.Client()
         bucket = storage_client.bucket(bucket_name)
     except Exception as e:
-        print(f"Error initializing GCS client: {e}")
-        return
+        raise RuntimeError(f"Error initializing GCS client: {e}") from e
 
     merged_data = []
     processed_folders = set()
 
-    # List all blobs to identify folders
     blobs = list(bucket.list_blobs())
     if not blobs:
         print(f"Bucket '{bucket_name}' is empty or does not exist.")
-        return
+        return []
         
     print(f"Found {len(blobs)} total objects. Identifying folders...")
 
     for blob in blobs:
-        # Extract the folder name from the blob path
         folder_name = os.path.dirname(blob.name)
         
         if folder_name and folder_name not in processed_folders:
@@ -44,46 +44,34 @@ def merge_meta_from_gcs(bucket_name, output_file):
             
             if meta_blob.exists():
                 print(f"  Found and processing: gs://{bucket_name}/{meta_file_path}")
-                try:
-                    content = meta_blob.download_as_text()
-                    meta_items = json.loads(content)
-                    
-                    for item in meta_items:
-                        if 'questionDoc' in item and 'labels' in item:
-                            mapped_item = {
-                                'questionDoc': item['questionDoc'],
-                                'labels': item['labels']
-                            }
-                            merged_data.append(mapped_item)
-                        else:
-                            print(f"    Warning: Skipping item in {meta_file_path} due to missing 'questionDoc' or 'labels'.")
                 
-                except json.JSONDecodeError:
-                    print(f"    Error: Could not decode JSON from {meta_file_path}.")
-                except Exception as e:
-                    print(f"    Error processing file {meta_file_path}: {e}")
-            else:
-                # This is expected if a folder doesn't have a meta.json
-                pass
+                content = meta_blob.download_as_text()
+                meta_items = json.loads(content)
+                
+                for item in meta_items:
+                    if 'questionDoc' not in item or 'labels' not in item:
+                        raise ValueError(f"Item in {meta_file_path} is missing 'questionDoc' or 'labels' fields.")
 
+                    question_doc_filename = item['questionDoc']
+                    question_doc_blob_name = f"{folder_name}/{question_doc_filename}"
+                    
+                    question_blob = bucket.blob(question_doc_blob_name)
+                    if not question_blob.exists():
+                        raise FileNotFoundError(f"Referenced questionDoc file not found: gs://{bucket_name}/{question_doc_blob_name}")
+
+                    gcs_uri = f"gs://{bucket_name}/{question_doc_blob_name}"
+
+                    # Intermediate representation with full GCS URI
+                    mapped_item = {
+                        'questionDoc': gcs_uri,
+                        'labels': item['labels']
+                    }
+                    merged_data.append(mapped_item)
 
     if not merged_data:
-        print("No data was merged. The output file will not be created.")
-        return
+        print("No data was merged.")
 
-    # Ensure the output directory exists
-    output_dir = os.path.dirname(output_file)
-    if output_dir and not os.path.exists(output_dir):
-        print(f"Creating output directory: {output_dir}")
-        os.makedirs(output_dir)
-
-    # Write the merged data to the output file
-    try:
-        with open(output_file, 'w', encoding='utf-8') as f:
-            json.dump(merged_data, f, indent=2)
-        print(f"Successfully merged {len(merged_data)} items into {output_file}")
-    except IOError as e:
-        print(f"Error writing to output file {output_file}: {e}")
+    return merged_data
 
 
 if __name__ == "__main__":
@@ -104,5 +92,19 @@ if __name__ == "__main__":
     
     args = parser.parse_args()
     
-    # Assuming the script is run from the project root
-    merge_meta_from_gcs(args.bucket_name, args.output_file)
+    try:
+        data = merge_meta_from_gcs(args.bucket_name)
+
+        if data:
+            output_file = args.output_file
+            output_dir = os.path.dirname(output_file)
+            if output_dir and not os.path.exists(output_dir):
+                os.makedirs(output_dir)
+
+            with open(output_file, 'w', encoding='utf-8') as f:
+                json.dump(data, f, indent=2)
+            print(f"Successfully wrote {len(data)} items to {output_file}")
+
+    except (RuntimeError, FileNotFoundError, ValueError, json.JSONDecodeError) as e:
+        print(f"Error: {e}")
+        exit(1)
