@@ -113,11 +113,12 @@ C) Classification Instruction ==================================================
 Classify the provided material in the following steps:
 
 1) Determine if the material is learning material and if not return the error "NotLearningMaterial"
-2) Determine if the material is learning material from the area of math and if not return the error "NotMathMaterial"
-3) Use the taxonomy http://edugraph.io/edu#Area to determine the IRIs of the terms that best describe the material in the Area dimension
-4) Use the taxonomy http://edugraph.io/edu#Scope to determine the IRIs of the terms that best describe the material in the Scope dimension
-5) Use the taxonomy http://edugraph.io/edu#Ability to determine the IRIs of the terms that best describe the material in the Ability dimension
-6) Clean up the classification results:
-6.1) Eliminate any duplicates
-6.2) Remove parent terms if children terms are available
-7) Return the IRIs of the matched terms in the requested response schema and nothing else
+2) Determine if the learning material covers the field of math and if not return the error "NotMathMaterial"
+3) Determine if the learning material covers an area of math at least vaguely covered by the Area taxonomy (http://edugraph.io/edu#Area) and if not return the error "AreaNotCovered"
+4) Use the Area taxonomy http://edugraph.io/edu#Area to determine the IRIs of the terms that best describe the material in the Area dimension
+5) Use the Scope taxonomy http://edugraph.io/edu#Scope to determine the IRIs of the terms that best describe the material in the Scope dimension
+6) Use the Ability taxonomy http://edugraph.io/edu#Ability to determine the IRIs of the terms that best describe the material in the Ability dimension
+7) Clean up the classification results:
+7.1) Eliminate any duplicates
+7.2) Remove parent terms if children terms are available
+8) Return the IRIs of the matched terms in the requested response schema and nothing else
