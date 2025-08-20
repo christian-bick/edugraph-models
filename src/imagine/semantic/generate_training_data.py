@@ -96,8 +96,8 @@ def generate_training_file(bucket_name, output_file, system_instruction_file, pr
         final_item = {
             "systemInstruction": {"parts": [{"text": json.dumps(system_instruction)}]},
             "contents": [
-                {"role": "user", "content": user_content},
-                {"role": "model", "content": [{"text": json.dumps(output_labels)}]}
+                {"role": "user", "parts": user_content},
+                {"role": "model", "parts": [{"text": json.dumps(output_labels)}]}
             ]
         }
         final_training_data.append(final_item)
