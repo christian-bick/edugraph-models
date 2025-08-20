@@ -85,7 +85,7 @@ def generate_training_file(bucket_name, output_file, no_cache=False):
         ]
 
         final_item = {
-            "messages": [
+            "contents": [
                 {"role": "user", "content": user_content},
                 {"role": "model", "content": [{"text": json.dumps(output_labels)}]}
             ]
