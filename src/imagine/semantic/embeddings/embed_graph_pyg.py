@@ -200,8 +200,8 @@ if __name__ == "__main__":
         pyg_data, entity_map, rel_map, id_map = build_pyg_graph(rdf_graph)
 
         in_dim = pyg_data.x.shape[1] # This will now be 19 (3 for one-hot + 16 for random)
-        h_dim = 32
-        out_dim = 32
+        h_dim = 128
+        out_dim = 128
         num_relations = len(rel_map)
 
         rgcn_model = RGCN(in_dim, h_dim, out_dim, num_relations)
