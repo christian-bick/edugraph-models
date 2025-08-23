@@ -29,38 +29,91 @@ def load_kg_from_url(url):
 
 # --- 2. Graph Preprocessing: Convert RDF to PyG Graph ---
 
+# --- 2. Graph Preprocessing: Convert RDF to PyG Graph ---
+
+# Define URIs for filtering
+EDU_NS = "http://edugraph.io/edu#"
+AREA_CLASS = URIRef(EDU_NS + "Area")
+SCOPE_CLASS = URIRef(EDU_NS + "Scope")
+ABILITY_CLASS = URIRef(EDU_NS + "Ability")
+PART_OF_AREA_PRED = URIRef(EDU_NS + "partOfArea")
+PART_OF_SCOPE_PRED = URIRef(EDU_NS + "partOfScope")
+PART_OF_ABILITY_PRED = URIRef(EDU_NS + "partOfAbility")
+RDF_TYPE = URIRef("http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
+
 def build_pyg_graph(rdf_graph):
     """
-    Parses an rdflib.Graph and converts it into a PyG graph.
+    Parses an rdflib.Graph and converts it into a PyG graph,
+    filtering for specific entity types and relationships.
     """
     if len(rdf_graph) == 0:
         print("RDF graph is empty. Cannot build PyG graph.")
         return None, None, None, None
 
-    all_nodes = set(rdf_graph.subjects()) | set(rdf_graph.objects())
-    all_entities = sorted([node for node in all_nodes if isinstance(node, URIRef)])
-    all_relations = sorted(list(set(rdf_graph.predicates())))
+    # 1. Filter entities by type (Area, Scope, Ability)
+    valid_entities = defaultdict(str) # Store entity -> type_string (e.g., "Area")
+    for s, p, o in rdf_graph:
+        if p == RDF_TYPE and o in [AREA_CLASS, SCOPE_CLASS, ABILITY_CLASS]:
+            if isinstance(s, URIRef):
+                if o == AREA_CLASS:
+                    valid_entities[s] = "Area"
+                elif o == SCOPE_CLASS:
+                    valid_entities[s] = "Scope"
+                elif o == ABILITY_CLASS:
+                    valid_entities[s] = "Ability"
 
-    entity_to_id = {entity: i for i, entity in enumerate(all_entities)}
-    relation_to_id = {relation: i for i, relation in enumerate(all_relations)}
+    if not valid_entities:
+        print("No valid entities of type Area, Scope, or Ability found after filtering.")
+        return None, None, None, None
+
+    all_entities_list = sorted(list(valid_entities.keys()))
+    entity_to_id = {entity: i for i, entity in enumerate(all_entities_list)}
     id_to_entity = {i: entity for entity, i in entity_to_id.items()}
+
+    # 2. Filter relations based on allowed predicates and valid entities
+    allowed_predicates = [PART_OF_AREA_PRED, PART_OF_SCOPE_PRED, PART_OF_ABILITY_PRED]
+    # Ensure only these are considered relations for the graph
+    all_relations = sorted(list(set(allowed_predicates)))
+    relation_to_id = {relation: i for i, relation in enumerate(all_relations)}
 
     src, rel, dst = [], [], []
     for s, p, o in rdf_graph:
-        if s in entity_to_id and o in entity_to_id:
+        if p in allowed_predicates and s in valid_entities and o in valid_entities:
             src.append(entity_to_id[s])
             rel.append(relation_to_id[p])
             dst.append(entity_to_id[o])
 
+    if not src:
+        print("No valid triples found after filtering entities and relations.")
+        return None, None, None, None
+
+    else:
+        print(f"Found src={len(src)} rel={len(rel)} dst={len(rel)}")
+
     edge_index = torch.tensor([src, dst], dtype=torch.long)
     edge_type = torch.tensor(rel, dtype=torch.long)
 
-    node_features = torch.randn(len(all_entities), 16)
+    # 3. Prepare node features with one-hot encoding for type
+    num_entities = len(all_entities_list)
+    type_one_hot = torch.zeros(num_entities, 3) # 3 for Area, Scope, Ability types
+    random_features = torch.randn(num_entities, 16) # Keep original random features
+
+    for i, entity in enumerate(all_entities_list):
+        entity_type = valid_entities[entity]
+        if entity_type == "Area":
+            type_one_hot[i, 0] = 1
+        elif entity_type == "Scope":
+            type_one_hot[i, 1] = 1
+        elif entity_type == "Ability":
+            type_one_hot[i, 2] = 1
+
+    # Concatenate one-hot type features with random features
+    node_features = torch.cat([type_one_hot, random_features], dim=1)
 
     data = Data(x=node_features, edge_index=edge_index, edge_type=edge_type)
-    data.num_nodes = len(all_entities)
+    data.num_nodes = num_entities
 
-    print(f"Built PyG graph with {data.num_nodes} nodes and {data.num_edges} edges.")
+    print(f"Built PyG graph with {data.num_nodes} nodes and {data.num_edges} edges after filtering.")
     print(f"Number of relation types: {len(all_relations)}")
 
     return data, entity_to_id, relation_to_id, id_to_entity
@@ -146,7 +199,7 @@ if __name__ == "__main__":
     if len(rdf_graph) > 0:
         pyg_data, entity_map, rel_map, id_map = build_pyg_graph(rdf_graph)
 
-        in_dim = pyg_data.x.shape[1]
+        in_dim = pyg_data.x.shape[1] # This will now be 19 (3 for one-hot + 16 for random)
         h_dim = 32
         out_dim = 32
         num_relations = len(rel_map)
