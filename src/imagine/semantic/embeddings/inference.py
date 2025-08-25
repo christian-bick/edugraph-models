@@ -1,7 +1,7 @@
 import onnxruntime
 import torch
 import numpy as np
-from rdflib import URIRef
+
 import os
 
 def get_pooled_embedding(entity_uris, model_path, data_path):
@@ -29,7 +29,7 @@ def get_pooled_embedding(entity_uris, model_path, data_path):
     entity_map = inference_data['entity_map']
 
     # 2. Map URIs to indices
-    pool_indices_list = [entity_map[URIRef(uri)] for uri in entity_uris if URIRef(uri) in entity_map]
+    pool_indices_list = [entity_map[uri] for uri in entity_uris if uri in entity_map]
     
     if not pool_indices_list:
         print("Error: None of the provided entity URIs were found in the entity map.")

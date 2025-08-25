@@ -248,7 +248,7 @@ if __name__ == "__main__":
             'x': pyg_data.x,
             'edge_index': pyg_data.edge_index,
             'edge_type': pyg_data.edge_type,
-            'entity_map': entity_map,
+            'entity_map': {str(k): v for k, v in entity_map.items()},
         }
         torch.save(inference_data, data_path)
         print("Inference data saved.")
