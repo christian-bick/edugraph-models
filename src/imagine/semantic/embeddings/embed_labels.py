@@ -54,8 +54,8 @@ def get_pooled_embedding(entity_uris, model_path, data_path):
 
 if __name__ == "__main__":
     temp_dir = "temp"
-    model_path = os.path.join(temp_dir, "graph_embedding_model.onnx")
-    data_path = os.path.join(temp_dir, "inference_data.pt")
+    model_path = os.path.join(temp_dir, "embed_edugraph_labels.onnx")
+    data_path = os.path.join(temp_dir, "embed_edugraph_labels.pt")
 
     entities_to_pool = [
         "http://edugraph.io/edu#IntegerAddition",
