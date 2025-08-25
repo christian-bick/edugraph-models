@@ -82,7 +82,7 @@ def build_pyg_graph(rdf_graph):
     # 3. Prepare node features with one-hot encoding for type
     num_entities = len(all_entities_list)
     type_one_hot = torch.zeros(num_entities, 3) # 3 for Area, Scope, Ability types
-    random_features = torch.randn(num_entities, 16) # Keep original random features
+    random_features = torch.randn(num_entities, 61) # 61 random features + 3 one-hot features = 64
 
     for i, entity in enumerate(all_entities_list):
         entity_type = valid_entities[entity]
@@ -200,8 +200,8 @@ if __name__ == "__main__":
         pyg_data, entity_map, rel_map, id_map = build_pyg_graph(rdf_graph)
 
         in_dim = pyg_data.x.shape[1]
-        h_dim = 128
-        out_dim = 128
+        h_dim = 64
+        out_dim = 64
         num_relations = len(rel_map)
 
         rgcn_model = RGCN(in_dim, h_dim, out_dim, num_relations)
