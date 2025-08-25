@@ -46,7 +46,29 @@ class InferenceModel(nn.Module):
 
     def forward(self, x, edge_index, edge_type, pool_indices):
         node_embeddings = self.rgcn(x, edge_index, edge_type)
-        pooled_embedding = torch.mean(node_embeddings.index_select(0, pool_indices), dim=0, keepdim=True)
+
+        # --- Weighted Pooling Logic ---
+        selected_embeddings = node_embeddings.index_select(0, pool_indices)
+        selected_features = x.index_select(0, pool_indices)
+
+        # Extract one-hot encoded types (first 3 columns of features)
+        type_features = selected_features[:, :3]
+
+        # Define weights for Area, Scope, Ability
+        weights_tensor = torch.tensor([4.0, 1.0, 2.0], device=x.device)
+
+        # Calculate weight for each entity by dot product with one-hot vector
+        entity_weights = torch.matmul(type_features, weights_tensor)
+
+        # Perform weighted average: sum(weight_i * embedding_i) / sum(weight_i)
+        # Add a small epsilon to the denominator to avoid division by zero
+        sum_of_weights = torch.sum(entity_weights) + 1e-9
+
+        # Reshape weights to (N, 1) to broadcast correctly with embeddings (N, D)
+        weighted_embeddings = selected_embeddings * entity_weights.unsqueeze(1)
+        
+        pooled_embedding = torch.sum(weighted_embeddings, dim=0, keepdim=True) / sum_of_weights
+        
         return pooled_embedding
 
 
