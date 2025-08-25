@@ -199,63 +199,65 @@ def train_rgcn(data, model, scorer, optimizer, epochs=50):
 
 # --- Main Execution ---
 
+def train_model_from_graph(rdf_graph):
+    pyg_data, entity_map, rel_map, id_map = rdf_to_pyg_graph(rdf_graph)
+
+    in_dim = pyg_data.x.shape[1]
+    h_dim = 64
+    out_dim = 64
+    num_relations = len(rel_map)
+
+    rgcn_model = RGCN(in_dim, h_dim, out_dim, num_relations)
+    scorer_model = DistMultScorer(num_relations, out_dim)
+
+    all_params = itertools.chain(rgcn_model.parameters(), scorer_model.parameters())
+    optimizer = torch.optim.Adam(all_params, lr=0.01)
+
+    trained_model = train_rgcn(pyg_data, rgcn_model, scorer_model, optimizer, epochs=100)
+
+    print("\n--- Create and Export ONNX Model ---")
+
+    # Create the inference model
+    inference_model = InferenceModel(trained_model)
+    inference_model.eval()
+
+    # Prepare for export
+    temp_dir = "temp"
+    os.makedirs(temp_dir, exist_ok=True)
+    onnx_path = os.path.join(temp_dir, "embed_edugraph_labels.onnx")
+    data_path = os.path.join(temp_dir, "embed_edugraph_labels.pt")
+
+    # Dummy input for export.
+    dummy_pool_indices = torch.tensor([0, 1], dtype=torch.long)
+
+    # Export the model to ONNX
+    print(f"Exporting model to {onnx_path}...")
+    torch.onnx.export(
+        inference_model,
+        (pyg_data.x, pyg_data.edge_index, pyg_data.edge_type, dummy_pool_indices),
+        onnx_path,
+        input_names=['x', 'edge_index', 'edge_type', 'pool_indices'],
+        output_names=['pooled_embedding'],
+        dynamic_axes={
+            'pool_indices': {0: 'num_to_pool'}
+        },
+        opset_version=12
+    )
+    print("Model exported successfully.")
+
+    # Save necessary data for inference
+    print(f"Saving inference data to {data_path}...")
+    inference_data = {
+        'x': pyg_data.x,
+        'edge_index': pyg_data.edge_index,
+        'edge_type': pyg_data.edge_type,
+        'entity_map': {str(k): v for k, v in entity_map.items()},
+    }
+    torch.save(inference_data, data_path)
+    print("Inference data saved.")
+
 if __name__ == "__main__":
     rdf_url = "https://github.com/christian-bick/edugraph-ontology/releases/download/v0.4.0/core-ontology.rdf"
-    rdf_graph = load_ontology_rdflib(rdf_url)
+    ontology = load_ontology_rdflib(rdf_url)
 
-    if len(rdf_graph) > 0:
-        pyg_data, entity_map, rel_map, id_map = rdf_to_pyg_graph(rdf_graph)
-
-        in_dim = pyg_data.x.shape[1]
-        h_dim = 64
-        out_dim = 64
-        num_relations = len(rel_map)
-
-        rgcn_model = RGCN(in_dim, h_dim, out_dim, num_relations)
-        scorer_model = DistMultScorer(num_relations, out_dim)
-
-        all_params = itertools.chain(rgcn_model.parameters(), scorer_model.parameters())
-        optimizer = torch.optim.Adam(all_params, lr=0.01)
-
-        trained_model = train_rgcn(pyg_data, rgcn_model, scorer_model, optimizer, epochs=100)
-
-        print("\n--- Create and Export ONNX Model ---")
-
-        # Create the inference model
-        inference_model = InferenceModel(trained_model)
-        inference_model.eval()
-
-        # Prepare for export
-        temp_dir = "temp"
-        os.makedirs(temp_dir, exist_ok=True)
-        onnx_path = os.path.join(temp_dir, "embed_edugraph_labels.onnx")
-        data_path = os.path.join(temp_dir, "embed_edugraph_labels.pt")
-
-        # Dummy input for export.
-        dummy_pool_indices = torch.tensor([0, 1], dtype=torch.long)
-
-        # Export the model to ONNX
-        print(f"Exporting model to {onnx_path}...")
-        torch.onnx.export(
-            inference_model,
-            (pyg_data.x, pyg_data.edge_index, pyg_data.edge_type, dummy_pool_indices),
-            onnx_path,
-            input_names=['x', 'edge_index', 'edge_type', 'pool_indices'],
-            output_names=['pooled_embedding'],
-            dynamic_axes={
-                'pool_indices': {0: 'num_to_pool'}
-            },
-            opset_version=12
-        )
-        print("Model exported successfully.")
-
-        # Save necessary data for inference
-        print(f"Saving inference data to {data_path}...")
-        inference_data = {
-            'x': pyg_data.x,
-            'edge_index': pyg_data.edge_index,
-            'edge_type': pyg_data.edge_type,
-            'entity_map': {str(k): v for k, v in entity_map.items()},
-        }
-        torch.save(inference_data, data_path)
-        print("Inference data saved.")
+    train_model_from_graph(ontology)
