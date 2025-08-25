@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import torch.onnx
 from torch_geometric.data import Data
 from torch_geometric.nn import RGCNConv
 import numpy as np
@@ -8,6 +9,7 @@ from rdflib import Graph, URIRef, Literal
 from collections import defaultdict
 import itertools
 import urllib.request
+import os
 
 
 # --- 1. Data Loading: Load RDF from a URL ---
@@ -26,8 +28,6 @@ def load_kg_from_url(url):
         return Graph()
     return g
 
-
-# --- 2. Graph Preprocessing: Convert RDF to PyG Graph ---
 
 # --- 2. Graph Preprocessing: Convert RDF to PyG Graph ---
 
@@ -190,6 +190,20 @@ def train(data, model, scorer, optimizer, epochs=50):
     return model
 
 
+# --- 6. Inference Model with Pooling ---
+
+class InferenceModel(nn.Module):
+    def __init__(self, rgcn_model):
+        super(InferenceModel, self).__init__()
+        self.rgcn = rgcn_model
+        self.rgcn.eval()
+
+    def forward(self, x, edge_index, edge_type, pool_indices):
+        node_embeddings = self.rgcn(x, edge_index, edge_type)
+        pooled_embedding = torch.mean(node_embeddings.index_select(0, pool_indices), dim=0, keepdim=True)
+        return pooled_embedding
+
+
 # --- Main Execution ---
 
 if __name__ == "__main__":
@@ -199,7 +213,7 @@ if __name__ == "__main__":
     if len(rdf_graph) > 0:
         pyg_data, entity_map, rel_map, id_map = build_pyg_graph(rdf_graph)
 
-        in_dim = pyg_data.x.shape[1] # This will now be 19 (3 for one-hot + 16 for random)
+        in_dim = pyg_data.x.shape[1]
         h_dim = 128
         out_dim = 128
         num_relations = len(rel_map)
@@ -212,27 +226,43 @@ if __name__ == "__main__":
 
         trained_model = train(pyg_data, rgcn_model, scorer_model, optimizer, epochs=100)
 
-        print("\n--- Generated Embeddings ---")
-        trained_model.eval()
-        with torch.no_grad():
-            final_embeddings = trained_model(pyg_data.x, pyg_data.edge_index, pyg_data.edge_type)
+        print("\n--- Create and Export ONNX Model ---")
 
-        print(f"Shape of final embeddings tensor: {final_embeddings.shape}")
+        # 1. Create the inference model
+        inference_model = InferenceModel(trained_model)
+        inference_model.eval()
 
-        target_entities = [
-            "http://edugraph.io/edu#IntegerAddition",
-            "http://edugraph.io/edu#IntegerSubtraction",
-            "http://edugraph.io/edu#ProcedureExecution",
-            "http://edugraph.io/edu#NumbersWithoutZero",
-            "http://edugraph.io/edu#NumbersSmaller10"
-        ]
+        # 2. Prepare for export
+        temp_dir = "temp"
+        os.makedirs(temp_dir, exist_ok=True)
+        onnx_path = os.path.join(temp_dir, "graph_embedding_model.onnx")
+        data_path = os.path.join(temp_dir, "inference_data.pt")
 
-        for entity_uri in target_entities:
-            entity_ref = URIRef(entity_uri)
-            if entity_ref in entity_map:
-                entity_id = entity_map[entity_ref]
-                embedding_vector = final_embeddings[entity_id]
-                print(f"\nEmbedding for: {entity_uri.split('#')[-1]}")
-                print(embedding_vector[:5].numpy())
-            else:
-                print(f"\nEntity not found in map: {entity_uri.split('#')[-1]}")
+        # Dummy input for export.
+        dummy_pool_indices = torch.tensor([0, 1], dtype=torch.long)
+
+        # 3. Export the model to ONNX
+        print(f"Exporting model to {onnx_path}...")
+        torch.onnx.export(
+            inference_model,
+            (pyg_data.x, pyg_data.edge_index, pyg_data.edge_type, dummy_pool_indices),
+            onnx_path,
+            input_names=['x', 'edge_index', 'edge_type', 'pool_indices'],
+            output_names=['pooled_embedding'],
+            dynamic_axes={
+                'pool_indices': {0: 'num_to_pool'}
+            },
+            opset_version=12
+        )
+        print("Model exported successfully.")
+
+        # 4. Save necessary data for inference
+        print(f"Saving inference data to {data_path}...")
+        inference_data = {
+            'x': pyg_data.x,
+            'edge_index': pyg_data.edge_index,
+            'edge_type': pyg_data.edge_type,
+            'entity_map': entity_map,
+        }
+        torch.save(inference_data, data_path)
+        print("Inference data saved.")
