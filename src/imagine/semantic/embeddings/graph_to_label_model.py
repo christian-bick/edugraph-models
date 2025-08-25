@@ -14,8 +14,41 @@ import os
 
 from imagine.semantic.ontology_loader import load_ontology_rdflib
 
+class RGCN(nn.Module):
+    def __init__(self, in_dim, h_dim, out_dim, num_rels):
+        super(RGCN, self).__init__()
+        self.conv1 = RGCNConv(in_dim, h_dim, num_rels)
+        self.conv2 = RGCNConv(h_dim, out_dim, num_rels)
 
-# --- 2. Graph Preprocessing: Convert RDF to PyG Graph ---
+    def forward(self, x, edge_index, edge_type):
+        x = self.conv1(x, edge_index, edge_type)
+        x = F.relu(x)
+        x = self.conv2(x, edge_index, edge_type)
+        return x
+
+class DistMultScorer(nn.Module):
+    def __init__(self, num_rels, embedding_dim):
+        super(DistMultScorer, self).__init__()
+        self.rel_embedding = nn.Embedding(num_rels, embedding_dim)
+
+    def forward(self, node_embeddings, s, o, r):
+        s_emb = node_embeddings[s]
+        o_emb = node_embeddings[o]
+        r_emb = self.rel_embedding(r)
+        score = torch.sum(s_emb * r_emb * o_emb, dim=-1)
+        return score
+
+class InferenceModel(nn.Module):
+    def __init__(self, rgcn_model):
+        super(InferenceModel, self).__init__()
+        self.rgcn = rgcn_model
+        self.rgcn.eval()
+
+    def forward(self, x, edge_index, edge_type, pool_indices):
+        node_embeddings = self.rgcn(x, edge_index, edge_type)
+        pooled_embedding = torch.mean(node_embeddings.index_select(0, pool_indices), dim=0, keepdim=True)
+        return pooled_embedding
+
 
 # Define URIs for filtering
 EDU_NS = "http://edugraph.io/edu#"
@@ -27,7 +60,7 @@ PART_OF_SCOPE_PRED = URIRef(EDU_NS + "partOfScope")
 PART_OF_ABILITY_PRED = URIRef(EDU_NS + "partOfAbility")
 RDF_TYPE = URIRef("http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
 
-def build_pyg_graph(rdf_graph):
+def rdf_to_pyg_graph(rdf_graph):
     """
     Parses an rdflib.Graph and converts it into a PyG graph,
     filtering for specific entity types and relationships.
@@ -104,40 +137,7 @@ def build_pyg_graph(rdf_graph):
 
     return data, entity_to_id, relation_to_id, id_to_entity
 
-
-# --- 3. R-GCN Model Definition ---
-
-class RGCN(nn.Module):
-    def __init__(self, in_dim, h_dim, out_dim, num_rels):
-        super(RGCN, self).__init__()
-        self.conv1 = RGCNConv(in_dim, h_dim, num_rels)
-        self.conv2 = RGCNConv(h_dim, out_dim, num_rels)
-
-    def forward(self, x, edge_index, edge_type):
-        x = self.conv1(x, edge_index, edge_type)
-        x = F.relu(x)
-        x = self.conv2(x, edge_index, edge_type)
-        return x
-
-
-# --- 4. Link Prediction Scorer ---
-
-class DistMultScorer(nn.Module):
-    def __init__(self, num_rels, embedding_dim):
-        super(DistMultScorer, self).__init__()
-        self.rel_embedding = nn.Embedding(num_rels, embedding_dim)
-
-    def forward(self, node_embeddings, s, o, r):
-        s_emb = node_embeddings[s]
-        o_emb = node_embeddings[o]
-        r_emb = self.rel_embedding(r)
-        score = torch.sum(s_emb * r_emb * o_emb, dim=-1)
-        return score
-
-
-# --- 5. Training Loop ---
-
-def train(data, model, scorer, optimizer, epochs=50):
+def train_rgcn(data, model, scorer, optimizer, epochs=50):
     """
     Main training loop for the R-GCN model using a link prediction task.
     """
@@ -175,21 +175,6 @@ def train(data, model, scorer, optimizer, epochs=50):
     print("--- Training Finished ---")
     return model
 
-
-# --- 6. Inference Model with Pooling ---
-
-class InferenceModel(nn.Module):
-    def __init__(self, rgcn_model):
-        super(InferenceModel, self).__init__()
-        self.rgcn = rgcn_model
-        self.rgcn.eval()
-
-    def forward(self, x, edge_index, edge_type, pool_indices):
-        node_embeddings = self.rgcn(x, edge_index, edge_type)
-        pooled_embedding = torch.mean(node_embeddings.index_select(0, pool_indices), dim=0, keepdim=True)
-        return pooled_embedding
-
-
 # --- Main Execution ---
 
 if __name__ == "__main__":
@@ -197,7 +182,7 @@ if __name__ == "__main__":
     rdf_graph = load_ontology_rdflib(rdf_url)
 
     if len(rdf_graph) > 0:
-        pyg_data, entity_map, rel_map, id_map = build_pyg_graph(rdf_graph)
+        pyg_data, entity_map, rel_map, id_map = rdf_to_pyg_graph(rdf_graph)
 
         in_dim = pyg_data.x.shape[1]
         h_dim = 64
@@ -210,24 +195,24 @@ if __name__ == "__main__":
         all_params = itertools.chain(rgcn_model.parameters(), scorer_model.parameters())
         optimizer = torch.optim.Adam(all_params, lr=0.01)
 
-        trained_model = train(pyg_data, rgcn_model, scorer_model, optimizer, epochs=100)
+        trained_model = train_rgcn(pyg_data, rgcn_model, scorer_model, optimizer, epochs=100)
 
         print("\n--- Create and Export ONNX Model ---")
 
-        # 1. Create the inference model
+        # Create the inference model
         inference_model = InferenceModel(trained_model)
         inference_model.eval()
 
-        # 2. Prepare for export
+        # Prepare for export
         temp_dir = "temp"
         os.makedirs(temp_dir, exist_ok=True)
-        onnx_path = os.path.join(temp_dir, "graph_embedding_model.onnx")
-        data_path = os.path.join(temp_dir, "inference_data.pt")
+        onnx_path = os.path.join(temp_dir, "embed_edugraph_labels.onnx")
+        data_path = os.path.join(temp_dir, "embed_edugraph_labels.pt")
 
         # Dummy input for export.
         dummy_pool_indices = torch.tensor([0, 1], dtype=torch.long)
 
-        # 3. Export the model to ONNX
+        # Export the model to ONNX
         print(f"Exporting model to {onnx_path}...")
         torch.onnx.export(
             inference_model,
@@ -242,7 +227,7 @@ if __name__ == "__main__":
         )
         print("Model exported successfully.")
 
-        # 4. Save necessary data for inference
+        # Save necessary data for inference
         print(f"Saving inference data to {data_path}...")
         inference_data = {
             'x': pyg_data.x,
