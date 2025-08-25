@@ -4,7 +4,7 @@ import numpy as np
 
 import os
 
-def get_pooled_embedding(entity_uris, model_path, data_path):
+def embed_entities(entity_uris, model_path, data_path):
     """
     Loads an ONNX model and associated data to compute a pooled embedding for a list of entity URIs.
 
@@ -64,7 +64,7 @@ if __name__ == "__main__":
 
     print(f"Attempting to get pooled embedding for: {', '.join(e.split('#')[-1] for e in entities_to_pool)}")
     
-    embedding = get_pooled_embedding(entities_to_pool, model_path, data_path)
+    embedding = embed_entities(entities_to_pool, model_path, data_path)
 
     if embedding is not None:
         print("\nSuccessfully got pooled embedding.")
