@@ -18,7 +18,7 @@ def get_pooled_embedding(entity_uris, model_path, data_path):
     """
     if not os.path.exists(model_path) or not os.path.exists(data_path):
         print("Error: Model or data file not found.")
-        print("Please run the training script (embed_graph_pyg.py) first to generate the model and data.")
+        print("Please run the training script to generate the model and data.")
         return None
 
     # 1. Load inference data
