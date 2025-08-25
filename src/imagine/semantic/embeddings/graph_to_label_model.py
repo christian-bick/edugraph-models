@@ -26,17 +26,44 @@ class RGCN(nn.Module):
         x = self.conv2(x, edge_index, edge_type)
         return x
 
-class DistMultScorer(nn.Module):
+class RotatEScorer(nn.Module):
     def __init__(self, num_rels, embedding_dim):
-        super(DistMultScorer, self).__init__()
-        self.rel_embedding = nn.Embedding(num_rels, embedding_dim)
+        super(RotatEScorer, self).__init__()
+        self.embedding_dim = embedding_dim
 
-    def forward(self, node_embeddings, s, o, r):
-        s_emb = node_embeddings[s]
-        o_emb = node_embeddings[o]
-        r_emb = self.rel_embedding(r)
-        score = torch.sum(s_emb * r_emb * o_emb, dim=-1)
-        return score
+        # Relations are modeled as rotations, so they have a phase component.
+        self.rel_embedding = nn.Embedding(num_rels, self.embedding_dim)
+
+        # Initialize relation phases to be between 0 and 2*pi
+        nn.init.uniform_(
+            tensor=self.rel_embedding.weight,
+            a=0,
+            b=2 * np.pi
+        )
+
+    def forward(self, head_emb, tail_emb, rel_idx):
+        # Separate real and imaginary parts
+        head_real, head_imag = torch.chunk(head_emb, 2, dim=-1)
+        tail_real, tail_imag = torch.chunk(tail_emb, 2, dim=-1)
+
+        # Get relation phase
+        relation_phase = self.rel_embedding(rel_idx)
+
+        # Convert phase to complex number (re = cos(phase), im = sin(phase))
+        rel_real = torch.cos(relation_phase)
+        rel_imag = torch.sin(relation_phase)
+
+        # Complex multiplication: (h_r + i*h_i) * (r_r + i*r_i) = (h_r*r_r - h_i*r_i) + i*(h_r*r_i + h_i*r_r)
+        re_score = head_real * rel_real - head_imag * rel_imag
+        im_score = head_real * rel_imag + head_imag * rel_real
+
+        # The score is the L2 distance between the rotated head and the tail
+        # score = -|| h*r - t ||
+        score = torch.stack([re_score - tail_real, im_score - tail_imag], dim=0)
+        score = score.norm(dim=0)
+
+        # We return the negative distance, as higher scores should be better.
+        return -score.sum(dim=-1)
 
 class InferenceModel(nn.Module):
     def __init__(self, rgcn_model):
@@ -159,33 +186,55 @@ def rdf_to_pyg_graph(rdf_graph):
 
     return data, entity_to_id, relation_to_id, id_to_entity
 
-def train_rgcn(data, model, scorer, optimizer, epochs=50):
+def train_rgcn(data, model, scorer, optimizer, epochs=50, neg_sample_size=32):
     """
-    Main training loop for the R-GCN model using a link prediction task.
+    Main training loop for the R-GCN model using RotatE scoring
+    with self-adversarial negative sampling.
     """
-    print("\n--- Starting Model Training ---")
+    print("\n--- Starting Model Training with RotatE Scorer ---")
+
+    pos_heads, pos_rels, pos_tails = data.edge_index[0], data.edge_type, data.edge_index[1]
 
     for epoch in range(epochs):
         model.train()
         scorer.train()
 
-        embeddings = model(data.x, data.edge_index, data.edge_type)
+        # Get all node embeddings (real and imaginary parts)
+        node_embeddings = model(data.x, data.edge_index, data.edge_type)
 
-        pos_scores = scorer(embeddings, data.edge_index[0], data.edge_index[1], data.edge_type)
+        # Positive samples score
+        pos_head_emb = node_embeddings[pos_heads]
+        pos_tail_emb = node_embeddings[pos_tails]
+        pos_score = scorer(pos_head_emb, pos_tail_emb, pos_rels)
 
-        num_edges = data.num_edges
-        num_nodes = data.num_nodes
-        corrupted_tails = torch.randint(0, num_nodes, (num_edges,))
+        # Negative sampling
+        num_pos_samples = len(pos_heads)
+        
+        # Repeat positive heads and relations for negative samples
+        neg_head_emb = pos_head_emb.repeat(neg_sample_size, 1)
+        neg_rel = pos_rels.repeat(neg_sample_size)
 
-        neg_scores = scorer(embeddings, data.edge_index[0], corrupted_tails, data.edge_type)
+        # Generate random tails for negative samples
+        corrupted_tails = torch.randint(0, data.num_nodes, (num_pos_samples * neg_sample_size,))
+        neg_tail_emb = node_embeddings[corrupted_tails]
 
-        pos_labels = torch.ones_like(pos_scores)
-        neg_labels = torch.zeros_like(neg_scores)
+        neg_score = scorer(neg_head_emb, neg_tail_emb, neg_rel)
 
-        scores = torch.cat([pos_scores, neg_scores])
-        labels = torch.cat([pos_labels, neg_labels])
+        # Self-adversarial loss calculation
+        neg_score = neg_score.view(num_pos_samples, -1)
+        pos_score = pos_score.view(num_pos_samples, -1)
 
-        loss = F.binary_cross_entropy_with_logits(scores, labels)
+        # The paper uses a temperature-scaled softmax for weighting negative samples
+        softmax_weights = F.softmax(neg_score * 0.5, dim=1).detach()
+        
+        # Loss for negative samples
+        neg_loss = torch.sum(softmax_weights * F.logsigmoid(-neg_score))
+
+        # Loss for positive samples
+        pos_loss = torch.sum(F.logsigmoid(pos_score))
+
+        # Total loss is the negative log likelihood
+        loss = -(pos_loss + neg_loss) / (2 * num_pos_samples)
 
         optimizer.zero_grad()
         loss.backward()
@@ -202,13 +251,14 @@ def train_rgcn(data, model, scorer, optimizer, epochs=50):
 def train_model_from_graph(rdf_graph):
     pyg_data, entity_map, rel_map, id_map = rdf_to_pyg_graph(rdf_graph)
 
+    embedding_dim = 64 # This is the dimension of the complex embedding
     in_dim = pyg_data.x.shape[1]
-    h_dim = 64
-    out_dim = 64
+    h_dim = 128 # Hidden dimension can be larger
+    out_dim = embedding_dim * 2 # Real and imaginary parts
     num_relations = len(rel_map)
 
     rgcn_model = RGCN(in_dim, h_dim, out_dim, num_relations)
-    scorer_model = DistMultScorer(num_relations, out_dim)
+    scorer_model = RotatEScorer(num_relations, embedding_dim)
 
     all_params = itertools.chain(rgcn_model.parameters(), scorer_model.parameters())
     optimizer = torch.optim.Adam(all_params, lr=0.01)
@@ -260,4 +310,6 @@ if __name__ == "__main__":
     rdf_url = "https://github.com/christian-bick/edugraph-ontology/releases/download/v0.4.0/core-ontology.rdf"
     ontology = load_ontology_rdflib(rdf_url)
 
-    train_model_from_graph(ontology)
+    if ontology:
+        train_model_from_graph(ontology)
+
