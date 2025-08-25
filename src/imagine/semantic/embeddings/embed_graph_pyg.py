@@ -8,25 +8,11 @@ import numpy as np
 from rdflib import Graph, URIRef, Literal
 from collections import defaultdict
 import itertools
-import urllib.request
+
 import os
 
 
-# --- 1. Data Loading: Load RDF from a URL ---
-
-def load_kg_from_url(url):
-    """
-    Loads an RDF graph from a given URL.
-    """
-    g = Graph()
-    print(f"Attempting to load RDF data from: {url}")
-    try:
-        g.parse(url, format="xml")
-        print(f"Successfully loaded KG with {len(g)} triples.")
-    except Exception as e:
-        print(f"Failed to load or parse the graph. Error: {e}")
-        return Graph()
-    return g
+from imagine.semantic.ontology_loader import load_ontology_rdflib
 
 
 # --- 2. Graph Preprocessing: Convert RDF to PyG Graph ---
@@ -208,7 +194,7 @@ class InferenceModel(nn.Module):
 
 if __name__ == "__main__":
     rdf_url = "https://github.com/christian-bick/edugraph-ontology/releases/download/v0.4.0/core-ontology.rdf"
-    rdf_graph = load_kg_from_url(rdf_url)
+    rdf_graph = load_ontology_rdflib(rdf_url)
 
     if len(rdf_graph) > 0:
         pyg_data, entity_map, rel_map, id_map = build_pyg_graph(rdf_graph)
