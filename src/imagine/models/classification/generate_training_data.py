@@ -2,7 +2,7 @@ import argparse
 import json
 import os
 
-from merge_meta_files import merge_meta_from_gcs
+from merge_training_meta import merge_meta_from_gcs
 
 
 def _read_file_content(file_path):
@@ -127,7 +127,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--output_file",
         type=str,
-        default="./temp/training_data.jsonl",
+        default="./out/training_data.jsonl",
         help="The path for the output training data file."
     )
     parser.add_argument(
@@ -138,7 +138,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--system_instruction_file",
         type=str,
-        default="./temp/generated_instruction.txt",
+        default="./out/generated_instruction.txt",
         help="Path to a file containing system instructions (e.g., taxonomy definition)."
     )
 

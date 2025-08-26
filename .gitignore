@@ -20,6 +20,6 @@ __pycache__
 
 #Environment
 out
-**/temp/
+temp
 *.env
 *-credentials.json

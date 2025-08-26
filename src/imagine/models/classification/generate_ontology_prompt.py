@@ -22,7 +22,7 @@ if __name__ == "__main__":
     ontology = load_ontology_owlready2(
         "https://github.com/christian-bick/edugraph-ontology/releases/download/v0.4.0/core-ontology.rdf")
     input_file = "./prompts/classify_with_taxonomy_v1.txt"
-    output_file = "./temp/generated_instruction.txt"
+    output_file = "./out/generated_instruction.txt"
     prompt = generate_from_template_file(input_file, ontology)
     print(f"Writing prompt to file: {output_file}")
     with open(output_file, "w", encoding="UTF-8") as f:
