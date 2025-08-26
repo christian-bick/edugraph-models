@@ -65,9 +65,9 @@ class RotatEScorer(nn.Module):
         # We return the negative distance, as higher scores should be better.
         return -score.sum(dim=-1)
 
-class InferenceModel(nn.Module):
+class InferenceModelBiased(nn.Module):
     def __init__(self, rgcn_model):
-        super(InferenceModel, self).__init__()
+        super(InferenceModelBiased, self).__init__()
         self.rgcn = rgcn_model
         self.rgcn.eval()
 
@@ -96,6 +96,19 @@ class InferenceModel(nn.Module):
         
         pooled_embedding = torch.sum(weighted_embeddings, dim=0, keepdim=True) / sum_of_weights
         
+        return pooled_embedding
+
+
+class InferenceModelNeutral(nn.Module):
+    def __init__(self, rgcn_model):
+        super(InferenceModelNeutral, self).__init__()
+        self.rgcn = rgcn_model
+        self.rgcn.eval()
+
+    def forward(self, x, edge_index, edge_type, pool_indices):
+        node_embeddings = self.rgcn(x, edge_index, edge_type)
+        # --- Neutral Mean Pooling Logic ---
+        pooled_embedding = torch.mean(node_embeddings.index_select(0, pool_indices), dim=0, keepdim=True)
         return pooled_embedding
 
 
@@ -265,27 +278,37 @@ def train_model_from_graph(rdf_graph):
 
     trained_model = train_rgcn(pyg_data, rgcn_model, scorer_model, optimizer, epochs=100)
 
-    print("\n--- Create and Export ONNX Model ---")
+    print("\n--- Create and Export ONNX Models (Biased and Neutral) ---")
 
-    # Create the inference model
-    inference_model = InferenceModel(trained_model)
-    inference_model.eval()
+    # 1. Instantiate both inference models
+    inference_model_biased = InferenceModelBiased(trained_model)
+    inference_model_biased.eval()
 
-    # Prepare for export
+    inference_model_neutral = InferenceModelNeutral(trained_model)
+    inference_model_neutral.eval()
+
+    # 2. Prepare for export
     out_dir = "out"
     os.makedirs(out_dir, exist_ok=True)
-    onnx_path = os.path.join(out_dir, "embed_entities.onnx")
+
+    # Paths for biased model
+    onnx_path_biased = os.path.join(out_dir, "embed_entities_biased.onnx")
+
+    # Paths for neutral model
+    onnx_path_neutral = os.path.join(out_dir, "embed_entities_neutral.onnx")
+
+    # Data path is shared
     data_path = os.path.join(out_dir, "embed_entities.pt")
 
-    # Dummy input for export.
+    # Dummy input for export
     dummy_pool_indices = torch.tensor([0, 1], dtype=torch.long)
 
-    # Export the model to ONNX
-    print(f"Exporting model to {onnx_path}...")
+    # 3. Export the BIASED model
+    print(f"Exporting BIASED model to {onnx_path_biased}...")
     torch.onnx.export(
-        inference_model,
+        inference_model_biased,
         (pyg_data.x, pyg_data.edge_index, pyg_data.edge_type, dummy_pool_indices),
-        onnx_path,
+        onnx_path_biased,
         input_names=['x', 'edge_index', 'edge_type', 'pool_indices'],
         output_names=['pooled_embedding'],
         dynamic_axes={
@@ -293,9 +316,24 @@ def train_model_from_graph(rdf_graph):
         },
         opset_version=12
     )
-    print("Model exported successfully.")
+    print("Biased model exported successfully.")
 
-    # Save necessary data for inference
+    # 4. Export the NEUTRAL model
+    print(f"Exporting NEUTRAL model to {onnx_path_neutral}...")
+    torch.onnx.export(
+        inference_model_neutral,
+        (pyg_data.x, pyg_data.edge_index, pyg_data.edge_type, dummy_pool_indices),
+        onnx_path_neutral,
+        input_names=['x', 'edge_index', 'edge_type', 'pool_indices'],
+        output_names=['pooled_embedding'],
+        dynamic_axes={
+            'pool_indices': {0: 'num_to_pool'}
+        },
+        opset_version=12
+    )
+    print("Neutral model exported successfully.")
+
+    # 5. Save necessary data for inference (shared)
     print(f"Saving inference data to {data_path}...")
     inference_data = {
         'x': pyg_data.x,
