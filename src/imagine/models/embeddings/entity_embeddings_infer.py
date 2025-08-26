@@ -50,7 +50,8 @@ def embed_entities(entity_uris, model_path, data_path):
     ort_outs = ort_session.run(None, ort_inputs)
     pooled_embedding = ort_outs[0]
     
-    return pooled_embedding
+    # Squeeze the output to be a 1-D vector for compatibility with distance metrics
+    return np.squeeze(pooled_embedding)
 
 if __name__ == "__main__":
     out_dir = "out"
