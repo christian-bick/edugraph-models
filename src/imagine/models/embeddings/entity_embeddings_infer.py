@@ -54,8 +54,8 @@ def embed_entities(entity_uris, model_path, data_path):
 
 if __name__ == "__main__":
     out_dir = "out"
-    model_path = os.path.join(out_dir, "embed_edugraph_labels.onnx")
-    data_path = os.path.join(out_dir, "embed_edugraph_labels.pt")
+    model_path = os.path.join(out_dir, "embed_entities.onnx")
+    data_path = os.path.join(out_dir, "embed_entities.pt")
 
     entities_to_pool = [
         "http://edugraph.io/edu#IntegerAddition",
