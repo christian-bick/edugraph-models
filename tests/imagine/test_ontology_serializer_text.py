@@ -49,7 +49,7 @@ B) Definitions of Areas
 ).format(expected_outline, expected_definitions)
 
 
-class TestContextBuilders:
+class TestOntologySerializerText:
 
     @pytest.fixture
     def entities(self):

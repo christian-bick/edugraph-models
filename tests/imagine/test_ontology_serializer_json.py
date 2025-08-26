@@ -4,7 +4,7 @@ from imagine.ontology_serializer_json import serialize_entity_tree, serialize_en
 onto = load_ontology_owlready2("./tests/test_data/test-ontology.rdf")
 
 
-class TestTreeSerialization:
+class TestOntologySerializerJson:
 
     def test_serialize_entity_tree(self):
         result = serialize_entity_tree([onto.AbstractionScope], "hasPartScope")
