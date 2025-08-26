@@ -54,7 +54,7 @@ def embed_entities(entity_uris, model_path, data_path):
 
 if __name__ == "__main__":
     out_dir = "out"
-    model_path = os.path.join(out_dir, "embed_entities.onnx")
+    model_path = os.path.join(out_dir, "embed_entities_neutral.onnx")
     data_path = os.path.join(out_dir, "embed_entities.pt")
 
     entities_to_pool = [
