@@ -17,14 +17,16 @@ from sentence_transformers import SentenceTransformer
 from imagine.ontology_loader import load_ontology_rdflib
 
 class RGCN(nn.Module):
-    def __init__(self, in_dim, h_dim, out_dim, num_rels):
+    def __init__(self, in_dim, h_dim, out_dim, num_rels, dropout=0.5):
         super(RGCN, self).__init__()
         self.conv1 = RGCNConv(in_dim, h_dim, num_rels)
         self.conv2 = RGCNConv(h_dim, out_dim, num_rels)
+        self.dropout = nn.Dropout(dropout)
 
     def forward(self, x, edge_index, edge_type):
         x = self.conv1(x, edge_index, edge_type)
         x = F.relu(x)
+        x = self.dropout(x)
         x = self.conv2(x, edge_index, edge_type)
         return x
 
@@ -164,7 +166,7 @@ def rdf_to_pyg_graph(rdf_graph):
     print(f"Built PyG graph with {data.num_nodes} nodes. Node feature dim: {data.x.shape[1]}")
     return data, entity_to_id, relation_to_id, {i: e for e, i in entity_to_id.items()}
 
-def train_rgcn(data, model, scorer, optimizer, epochs=50, margin=1.0):
+def train_rgcn(data, model, scorer, optimizer, scheduler, epochs=50, margin=1.0):
     print("\n--- Starting Model Training with DistMult Scorer (Margin Loss) ---")
     pos_heads, pos_rels, pos_tails = data.edge_index[0], data.edge_type, data.edge_index[1]
 
@@ -180,8 +182,9 @@ def train_rgcn(data, model, scorer, optimizer, epochs=50, margin=1.0):
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
+        scheduler.step()
         if (epoch + 1) % 10 == 0:
-            print(f"Epoch {epoch + 1:02d}/{epochs}, Loss: {loss.item():.4f}")
+            print(f"Epoch {epoch + 1:02d}/{epochs}, Loss: {loss.item():.4f}, LR: {scheduler.get_last_lr()[0]:.6f}")
 
     print("--- Training Finished ---")
     return model
@@ -195,13 +198,14 @@ def train_model_from_graph(rdf_graph):
     out_dim = embedding_dim
     num_relations = len(rel_map)
 
-    rgcn_model = RGCN(in_dim, h_dim, out_dim, num_relations)
+    rgcn_model = RGCN(in_dim, h_dim, out_dim, num_relations, dropout=0.5)
     scorer_model = DistMultScorer(num_relations, embedding_dim)
 
     all_params = itertools.chain(rgcn_model.parameters(), scorer_model.parameters())
-    optimizer = torch.optim.Adam(all_params, lr=0.001)
+    optimizer = torch.optim.Adam(all_params, lr=0.01, weight_decay=5e-4)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.5)
 
-    trained_model = train_rgcn(pyg_data, rgcn_model, scorer_model, optimizer, epochs=300)
+    trained_model = train_rgcn(pyg_data, rgcn_model, scorer_model, optimizer, scheduler, epochs=300)
 
     print("\n--- Create and Export ONNX Models (Biased and Neutral) ---")
 
