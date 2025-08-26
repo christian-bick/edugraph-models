@@ -1,6 +1,6 @@
 import pytest
 
-from imagine.legacy.classifiers.context_builder import *
+from imagine.ontology_serializer_text import *
 from tests.entity_mock import EntityMock
 
 expected_outline = (

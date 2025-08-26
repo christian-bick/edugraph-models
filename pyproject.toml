@@ -24,6 +24,7 @@ dependencies = [
     #"torch-cluster>=1.6.3",
     #"torch-spline-conv>=1.2.2",
     "torch-onnx>=0.1.25",
+    "scipy>=1.16.1",
 ]
 
 [build-system]

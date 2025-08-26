@@ -1,7 +1,7 @@
-from imagine.legacy.ontology_serializer import serialize_entity_tree, serialize_entity_tree_with_parent_relations
-from imagine.ontology_loader import load_from_path
+from imagine.ontology_loader import load_ontology_owlready2
+from imagine.ontology_serializer_json import serialize_entity_tree, serialize_entity_tree_with_parent_relations
 
-onto = load_from_path("./tests/test_data/test-ontology.rdf")
+onto = load_ontology_owlready2("./tests/test_data/test-ontology.rdf")
 
 
 class TestTreeSerialization:
