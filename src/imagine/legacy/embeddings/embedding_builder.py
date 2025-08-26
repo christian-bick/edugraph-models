@@ -1,6 +1,6 @@
 from typing import Dict
 
-from imagine.semantic.embeddings.embedding_strategy import EmbeddingStrategy
+from imagine.legacy.embeddings.embedding_strategy import EmbeddingStrategy
 from imagine.ontology_util import *
 
 

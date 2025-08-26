@@ -4,7 +4,7 @@ import typing
 from google import genai
 from google.genai import types
 
-from imagine.semantic.classifiers.context_builder import build_taxonomy
+from imagine.legacy.classifiers.context_builder import build_taxonomy
 from imagine.ontology_util import entity_name_of_natural_name, OntologyUtil
 
 system_instruction = """

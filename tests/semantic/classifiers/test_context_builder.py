@@ -1,6 +1,6 @@
 import pytest
 
-from imagine.semantic.classifiers.context_builder import *
+from imagine.legacy.classifiers.context_builder import *
 from tests.entity_mock import EntityMock
 
 expected_outline = (
