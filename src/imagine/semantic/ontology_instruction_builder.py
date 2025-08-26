@@ -1,4 +1,4 @@
-from imagine.semantic.ontology_loader import load_from_path
+from imagine.semantic.ontology_loader import load_ontology_owlready2
 from imagine.semantic.ontology_serializer_text import build_taxonomy
 from imagine.semantic.ontology_util import OntologyUtil
 
@@ -19,7 +19,7 @@ def generate_from_template(template, onto):
 
 
 if __name__ == "__main__":
-    ontology = load_from_path(
+    ontology = load_ontology_owlready2(
         "https://github.com/christian-bick/edugraph-ontology/releases/download/v0.4.0/core-ontology.rdf")
     input_file = "./prompts/classify_with_taxonomy_v1.txt"
     output_file = "./temp/generated_instruction.txt"
