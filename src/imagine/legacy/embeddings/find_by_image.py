@@ -5,7 +5,7 @@ from google.cloud import aiplatform
 import os
 
 from imagine.config import GCP_PROJECT, GCP_LOCATION, VECTOR_SEARCH_INDEX_ENDPOINT, VECTOR_SEARCH_INDEX
-from imagine.legacy.embeddings.embedder_google import GoogleMultiModalEmbedder
+from imagine.legacy.embeddings.embed_files_google import GoogleMultiModalEmbedder
 from google.cloud.aiplatform.matching_engine.matching_engine_index_endpoint import MatchNeighbor, Namespace
 
 

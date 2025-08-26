@@ -4,7 +4,7 @@ import typing
 from google import genai
 from google.genai import types
 
-from imagine.legacy.classifiers.context_builder import build_taxonomy
+from imagine.ontology_serializer_text import build_taxonomy
 from imagine.ontology_util import entity_name_of_natural_name, OntologyUtil
 
 system_instruction = """
@@ -138,9 +138,9 @@ class ClassifierSplitGeminiWithSerializedTaxonomiesV1:
         onto_util = OntologyUtil(onto)
         self.model = 'gemini-2.0-flash'
         self.client = genai.Client()
-        self.area_taxonomy = build_taxonomy("Areas", onto_util.list_root_entities(onto.Area))
-        self.ability_taxonomy = build_taxonomy("Abilities", onto_util.list_root_entities(onto.Ability))
-        self.scope_taxonomy = build_taxonomy("Scopes", onto_util.list_root_entities(onto.Scope))
+        self.area_taxonomy = build_taxonomy("Areas", onto.Area.iri, onto_util.list_root_entities(onto.Area))
+        self.ability_taxonomy = build_taxonomy("Abilities", onto.Ability.iri, onto_util.list_root_entities(onto.Ability))
+        self.scope_taxonomy = build_taxonomy("Scopes", onto.Scope.iri, onto_util.list_root_entities(onto.Scope))
 
     def __find_best_match(self, taxonomy, priming_instruction, matching_instruction, gemini_file):
         prompt = single_prompt.format(taxonomy, priming_instruction, matching_instruction)
