@@ -12,9 +12,9 @@ from imagine.models.embeddings.entity_embeddings_infer import embed_entities
 
 # Prerequisite: The training script must be run first to generate these files in the output directory.
 OUT_DIR = "out"
-MODEL_PATH_BIASED = os.path.join(OUT_DIR, "embed_entities_text_biased.onnx")
-MODEL_PATH_NEUTRAL = os.path.join(OUT_DIR, "embed_entities_text_neutral.onnx")
-DATA_PATH = os.path.join(OUT_DIR, "embed_entities_text.pt")
+MODEL_PATH_BIASED = os.path.join(OUT_DIR, "embed_entities_biased.onnx")
+MODEL_PATH_NEUTRAL = os.path.join(OUT_DIR, "embed_entities_neutral.onnx")
+DATA_PATH = os.path.join(OUT_DIR, "embed_entities.pt")
 
 # --- Test Constants ---
 
