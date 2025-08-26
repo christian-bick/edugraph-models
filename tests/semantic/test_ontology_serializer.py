@@ -1,5 +1,5 @@
 from imagine.semantic.ontology_serializer import serialize_entity_tree, serialize_entity_tree_with_parent_relations
-from imagine.semantic.ontology_loader import load_from_path
+from imagine.ontology_loader import load_from_path
 
 onto = load_from_path("./tests/test_data/test-ontology.rdf")
 

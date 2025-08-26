@@ -1,4 +1,4 @@
-from imagine.semantic.ontology_util import *
+from imagine.ontology_util import *
 
 
 def build_taxonomy(dimension_name, dimension_iri, entities):

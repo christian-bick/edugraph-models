@@ -1,7 +1,7 @@
 from typing import Dict
 
 from imagine.semantic.embeddings.embedding_strategy import EmbeddingStrategy
-from imagine.semantic.ontology_util import *
+from imagine.ontology_util import *
 
 
 def embed_taxonomy(entities, strategy: EmbeddingStrategy) -> Dict:

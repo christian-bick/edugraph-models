@@ -1,9 +1,9 @@
 import pytest
 from dotenv import load_dotenv
 
-from imagine.semantic.ontology_loader import load_from_path
-from imagine.semantic.ontology_util import OntologyUtil
-from imagine.semantic.embeddings.embedding_builder import embed_taxonomy, generate_embedding_input
+from imagine.ontology_loader import load_from_path
+from imagine.ontology_util import OntologyUtil
+from imagine.semantic.embeddings.embedding_builder import generate_embedding_input
 from tests.entity_mock import EntityMock
 
 onto = load_from_path("./tests/test_data/test-ontology.rdf")

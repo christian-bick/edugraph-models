@@ -1,7 +1,7 @@
 from assertpy import assert_that
 
-from imagine.semantic.ontology_loader import load_from_path
-from imagine.semantic.ontology_util import *
+from imagine.ontology_loader import load_from_path
+from imagine.ontology_util import *
 
 
 class EntityMock:

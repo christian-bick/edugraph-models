@@ -7,8 +7,8 @@ from imagine.config import GCP_PROJECT, GCP_LOCATION, GCP_BUCKET, GCP_BUCKET_PAT
 from imagine.semantic.embeddings.embedder_google import GoogleMultiModalEmbedder, generate_jsonl_from_embeddings, \
     upload_blobs_as_new_files
 
-from imagine.semantic.ontology_loader import load_from_path
-from imagine.semantic.ontology_util import natural_name_of_entity, definition_of_entity, parts_of_entity, is_leaf_entity, \
+from imagine.ontology_loader import load_from_path
+from imagine.ontology_util import natural_name_of_entity, definition_of_entity, parts_of_entity, is_leaf_entity, \
     OntologyUtil, natural_name_of_entity_name
 
 

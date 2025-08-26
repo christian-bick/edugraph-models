@@ -12,7 +12,7 @@ import itertools
 import os
 
 
-from imagine.semantic.ontology_loader import load_ontology_rdflib
+from imagine.ontology_loader import load_ontology_rdflib
 
 class RGCN(nn.Module):
     def __init__(self, in_dim, h_dim, out_dim, num_rels):

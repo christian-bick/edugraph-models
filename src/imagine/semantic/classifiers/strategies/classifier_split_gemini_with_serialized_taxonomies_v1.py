@@ -5,7 +5,7 @@ from google import genai
 from google.genai import types
 
 from imagine.semantic.classifiers.context_builder import build_taxonomy
-from imagine.semantic.ontology_util import entity_name_of_natural_name, OntologyUtil
+from imagine.ontology_util import entity_name_of_natural_name, OntologyUtil
 
 system_instruction = """
 You are presented with learning material that you shall classify using a given taxonomy.

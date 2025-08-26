@@ -1,6 +1,6 @@
-from imagine.semantic.ontology_loader import load_ontology_owlready2
-from imagine.semantic.ontology_serializer_text import build_taxonomy
-from imagine.semantic.ontology_util import OntologyUtil
+from imagine.ontology_loader import load_ontology_owlready2
+from imagine.ontology_serializer_text import build_taxonomy
+from imagine.ontology_util import OntologyUtil
 
 
 def generate_from_template_file(template_file, onto):
