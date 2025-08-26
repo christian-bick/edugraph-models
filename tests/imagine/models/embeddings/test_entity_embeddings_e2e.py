@@ -93,11 +93,11 @@ def test_4_biased_vs_neutral_divergence():
     assert_that(vector_biased).is_not_none()
     assert_that(vector_neutral).is_not_none()
 
-    # For the text-based model, the biased and neutral models are identical.
-    # This test now confirms they produce the same output.
+    # With the re-introduction of weighted pooling, the biased and neutral
+    # models should now produce different embeddings for a mixed-type set.
     are_equal = np.array_equal(vector_biased, vector_neutral)
     print(f"  Are biased and neutral vectors identical? {are_equal}")
-    assert_that(are_equal).is_true()
+    assert_that(are_equal).is_false()
 
 @pytest.mark.skipif(not os.path.exists(DATA_PATH), reason=f"Skipping E2E tests: Model/data files not found in '{OUT_DIR}'. Run training script first.")
 def test_5_idempotency():

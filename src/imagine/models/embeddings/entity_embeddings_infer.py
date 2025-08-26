@@ -37,7 +37,7 @@ def embed_entities(entity_uris, model_path, data_path):
     
     pool_indices = np.array(pool_indices_list, dtype=np.int64)
 
-    # 3. Load ONNX model and run inference
+    # 3. Load ONNX model and prepare inputs
     ort_session = onnxruntime.InferenceSession(model_path)
     
     ort_inputs = {
@@ -46,7 +46,17 @@ def embed_entities(entity_uris, model_path, data_path):
         'edge_type': edge_type.numpy(),
         'pool_indices': pool_indices
     }
-    
+
+    # Check if the model requires node_types (i.e., it's the biased model)
+    required_inputs = {inp.name for inp in ort_session.get_inputs()}
+    if 'node_types' in required_inputs:
+        node_types = inference_data.get('node_types')
+        if node_types is None:
+            print("Error: Biased model requires 'node_types', but it was not found in the data file.")
+            return None
+        ort_inputs['node_types'] = node_types.numpy()
+
+    # 4. Run inference
     ort_outs = ort_session.run(None, ort_inputs)
     pooled_embedding = ort_outs[0]
     
