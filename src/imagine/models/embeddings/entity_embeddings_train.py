@@ -272,10 +272,10 @@ def train_model_from_graph(rdf_graph):
     inference_model.eval()
 
     # Prepare for export
-    temp_dir = "temp"
-    os.makedirs(temp_dir, exist_ok=True)
-    onnx_path = os.path.join(temp_dir, "embed_edugraph_labels.onnx")
-    data_path = os.path.join(temp_dir, "embed_edugraph_labels.pt")
+    out_dir = "out"
+    os.makedirs(out_dir, exist_ok=True)
+    onnx_path = os.path.join(out_dir, "embed_edugraph_labels.onnx")
+    data_path = os.path.join(out_dir, "embed_edugraph_labels.pt")
 
     # Dummy input for export.
     dummy_pool_indices = torch.tensor([0, 1], dtype=torch.long)
