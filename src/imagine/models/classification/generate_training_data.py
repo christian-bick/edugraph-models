@@ -138,7 +138,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--system_instruction_file",
         type=str,
-        default="./out/generated_instruction.txt",
+        default="./out/entity_classification_instruction.txt",
         help="Path to a file containing system instructions (e.g., taxonomy definition)."
     )
 
