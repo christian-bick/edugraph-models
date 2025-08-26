@@ -45,11 +45,11 @@ def test_1_subset_superset_proximity():
 def test_2_disjoint_concept_distance():
     """Tests that embeddings for two unrelated concepts are far apart."""
     print("\nRunning Test 2: Disjoint Concept Distance")
-    set_math = ["http://edugraph.io/edu#IntegerAddition", "http://edugraph.io/edu#IntegerSubtraction"]
-    set_language = ["http://edugraph.io/edu#SentenceStructure", "http://edugraph.io/edu#Grammar"]
+    set_a = ["http://edugraph.io/edu#IntegerAddition", "http://edugraph.io/edu#ProcedureExecution"]
+    set_b = ["http://edugraph.io/edu#LinearShapeDrawing", "http://edugraph.io/edu#WritingFluency"]
 
-    vector_math = embed_entities(set_math, MODEL_PATH_NEUTRAL, DATA_PATH)
-    vector_language = embed_entities(set_language, MODEL_PATH_NEUTRAL, DATA_PATH)
+    vector_math = embed_entities(set_a, MODEL_PATH_NEUTRAL, DATA_PATH)
+    vector_language = embed_entities(set_b, MODEL_PATH_NEUTRAL, DATA_PATH)
 
     assert_that(vector_math).is_not_none()
     assert_that(vector_language).is_not_none()
@@ -64,7 +64,7 @@ def test_3_parent_child_hierarchy():
     print("\nRunning Test 3: Parent/Child Hierarchy")
     child = ["http://edugraph.io/edu#IntegerAddition"]
     parent = ["http://edugraph.io/edu#Arithmetic"]
-    unrelated = ["http://edugraph.io/edu#SentenceStructure"]
+    unrelated = ["http://edugraph.io/edu#LinearShapeDrawing"]
 
     vector_child = embed_entities(child, MODEL_PATH_NEUTRAL, DATA_PATH)
     vector_parent = embed_entities(parent, MODEL_PATH_NEUTRAL, DATA_PATH)
