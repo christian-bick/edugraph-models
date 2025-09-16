@@ -22,4 +22,5 @@ __pycache__
 out
 temp
 *.env
+*.env.bak
 *-credentials.json
