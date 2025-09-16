@@ -76,3 +76,13 @@ This script will:
 2.  Build a PyTorch Geometric graph from the ontology.
 3.  Train an RGCN model.
 4.  Export the trained model to ONNX format (`out/embed_entities_biased.onnx` and `out/embed_entities_neutral.onnx`) and save the inference data (`out/embed_entities_text.pt`).
+
+## Contributing
+
+Contributions are welcome! Particularly for adding support to more foundational multimodal classification models.
+
+Ideally always open an issue first to make sure your contribution aligns with the project's scope.
+
+## License
+
+This project is licensed under the GNU General Public License v3.0. See the [LICENSE](LICENSE) file for details.
