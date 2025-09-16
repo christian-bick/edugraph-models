@@ -1,10 +1,25 @@
 # Imagine Data
 
-This project provides tools for generating models related to learning material classification and embeddings. It leverages an ontology to create training data for fine-tuning Large Language Models (LLMs) and to generate embeddings for classifications based on a knowledge graph.
+This project provides tools for generating models related to classification and embedding generation with
+the [EduGraph competency ontology](https://github.com/christian-bick/edugraph-ontology). 
+
+In combination, these two types of models allow for high accuracy similarity search of completely unlabeled 
+learning material across all media formats supported by a multimodal LLM like documents, images, audio and video.
+
+To generate classification models it currently relies on fine-tuning foundational multimodal models using
+[generated & labeled learning material](https://github.com/christian-bick/imagine-content) for supervised learning.
+
+To generate embedding models, it solely relies on the structure of the ontology itself using state-of-the-art 
+knowledge graph embedding strategies that map the knowledge graph structure into high dimensional vector spaces.
+
+## Ontology
+
+This project is centered around the EduGraph ontolog which is automatically retrieved from the 
+[ontology repository](https://github.com/christian-bick/edugraph-ontology) during model generation.
 
 ## Features
 
-*   **Classification Model Data Generation:** Generates training data for fine-tuning LLMs to classify learning materials according to a defined ontology.
+*   **Classification Model Data Generation:** Generates training data for fine-tuning Gemini to classify learning materials according to a defined ontology.
 *   **Embeddings Model Training:** Trains an RGCN (Relational Graph Convolutional Network) model to create embeddings for the ontology entities.
 
 ## Getting Started
@@ -61,7 +76,3 @@ This script will:
 2.  Build a PyTorch Geometric graph from the ontology.
 3.  Train an RGCN model.
 4.  Export the trained model to ONNX format (`out/embed_entities_biased.onnx` and `out/embed_entities_neutral.onnx`) and save the inference data (`out/embed_entities_text.pt`).
-
-## Ontology
-
-The project uses the EduGraph ontology. The ontology is loaded from the following URL: `https://github.com/christian-bick/edugraph-ontology/releases/download/v0.4.0/core-ontology.rdf`.
