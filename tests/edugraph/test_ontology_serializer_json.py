@@ -1,5 +1,5 @@
-from imagine.ontology_loader import load_ontology_owlready2
-from imagine.ontology_serializer_json import serialize_entity_tree, serialize_entity_tree_with_parent_relations
+from edugraph.ontology_loader import load_ontology_owlready2
+from edugraph.ontology_serializer_json import serialize_entity_tree, serialize_entity_tree_with_parent_relations
 
 onto = load_ontology_owlready2("./tests/test_data/test-ontology.rdf")
 

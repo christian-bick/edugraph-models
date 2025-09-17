@@ -1,7 +1,7 @@
 from assertpy import assert_that
 
-from imagine.ontology_loader import load_ontology_owlready2
-from imagine.ontology_util import *
+from edugraph.ontology_loader import load_ontology_owlready2
+from edugraph.ontology_util import *
 
 
 class EntityMock:

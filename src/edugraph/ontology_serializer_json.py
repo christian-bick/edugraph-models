@@ -1,4 +1,4 @@
-from imagine.ontology_util import *
+from edugraph.ontology_util import *
 
 
 def serialize_entity(entity):

@@ -6,7 +6,7 @@ from scipy.spatial.distance import cosine
 
 # Adjust the path to import from the source directory
 # This assumes the test is run from the project root directory
-from imagine.models.embeddings.entity_embeddings_infer import embed_entities
+from edugraph.models.embeddings.entity_embeddings_infer import embed_entities
 
 # --- Test Configuration ---
 

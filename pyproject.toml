@@ -1,7 +1,7 @@
 [project]
-name = "imagine"
+name = "edugraph-models"
 version = "0.1.0"
-description = "Imagine Server"
+description = "EduGraph Models"
 authors = [{ name = "Christian Bick", email = "christian.bick@bitsuppliers.com" }]
 requires-python = ">=3.13"
 dependencies = [

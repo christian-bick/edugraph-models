@@ -1,6 +1,6 @@
 import pytest
 
-from imagine.ontology_serializer_text import *
+from edugraph.ontology_serializer_text import *
 from tests.entity_mock import EntityMock
 
 # Updated expected strings to include the mock IRI

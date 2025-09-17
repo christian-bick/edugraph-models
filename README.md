@@ -1,4 +1,4 @@
-# Imagine Models
+# EduGraph Models
 
 This project provides tools for generating models related to classification and embedding generation with
 the [EduGraph competency ontology](https://github.com/christian-bick/edugraph-ontology). 
@@ -32,13 +32,7 @@ This project is centered around the EduGraph ontolog which is automatically retr
 
 ### Installation
 
-1.  Clone the repository:
-    ```bash
-    git clone https://github.com/your-username/imagine-data.git
-    cd imagine-data
-    ```
-
-2.  Install the dependencies using Poetry:
+1. Install the dependencies using uv:
     ```bash
     uv sync
     ```
@@ -56,13 +50,13 @@ To generate the training data for the classification model, follow these steps:
 
 1.  **Generate the ontology prompt:** This script creates a prompt file that includes the ontology's taxonomy.
     ```bash
-    uv run src.imagine.models.classification.generate_ontology_prompt
+    uv run src.edugraph.models.classification.generate_ontology_prompt
     ```
     This will generate the `out/entity_classification_instruction.txt` file.
 
 2.  **Generate the training data:** This script fetches metadata from a Google Cloud Storage (GCS) bucket, merges it, and then generates a `JSONL` file for training.
     ```bash
-    uv run src.imagine.models.classification.generate_training_data <your-gcs-bucket-name>
+    uv run src.edugraph.models.classification.generate_training_data <your-gcs-bucket-name>
     ```
     Replace `<your-gcs-bucket-name>` with the name of your GCS bucket. The training data will be saved in `out/training_data.jsonl`.
 
@@ -70,7 +64,7 @@ To generate the training data for the classification model, follow these steps:
 
 To train the embeddings model, run the following command:
 ```bash
-uv run src.imagine.models.embeddings.entity_embeddings_train
+uv run src.edugraph.models.embeddings.entity_embeddings_train
 ```
 This script will:
 1.  Download the ontology from the specified URL.
