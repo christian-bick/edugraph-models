@@ -1,4 +1,4 @@
-# Imagine Data
+# Imagine Models
 
 This project provides tools for generating models related to classification and embedding generation with
 the [EduGraph competency ontology](https://github.com/christian-bick/edugraph-ontology). 
@@ -27,7 +27,8 @@ This project is centered around the EduGraph ontolog which is automatically retr
 ### Prerequisites
 
 *   Python >= 3.13
-*   [Poetry](https://python-poetry.org/) for dependency management.
+*   [UV](https://astral.sh/blog/uv) for build & dependency management
+*   Updated CUDA drivers
 
 ### Installation
 
@@ -39,7 +40,7 @@ This project is centered around the EduGraph ontolog which is automatically retr
 
 2.  Install the dependencies using Poetry:
     ```bash
-    poetry install
+    uv sync
     ```
 
 3.  Set up the environment variables by copying the `.env.example` file to `.env` and filling in the required values:
@@ -55,13 +56,13 @@ To generate the training data for the classification model, follow these steps:
 
 1.  **Generate the ontology prompt:** This script creates a prompt file that includes the ontology's taxonomy.
     ```bash
-    python -m src.imagine.models.classification.generate_ontology_prompt
+    uv run src.imagine.models.classification.generate_ontology_prompt
     ```
     This will generate the `out/entity_classification_instruction.txt` file.
 
 2.  **Generate the training data:** This script fetches metadata from a Google Cloud Storage (GCS) bucket, merges it, and then generates a `JSONL` file for training.
     ```bash
-    python -m src.imagine.models.classification.generate_training_data <your-gcs-bucket-name>
+    uv run src.imagine.models.classification.generate_training_data <your-gcs-bucket-name>
     ```
     Replace `<your-gcs-bucket-name>` with the name of your GCS bucket. The training data will be saved in `out/training_data.jsonl`.
 
@@ -69,7 +70,7 @@ To generate the training data for the classification model, follow these steps:
 
 To train the embeddings model, run the following command:
 ```bash
-python -m src.imagine.models.embeddings.entity_embeddings_train
+uv run src.imagine.models.embeddings.entity_embeddings_train
 ```
 This script will:
 1.  Download the ontology from the specified URL.
@@ -82,6 +83,12 @@ This script will:
 Contributions are welcome! Particularly for adding support to more foundational multimodal classification models.
 
 Ideally always open an issue first to make sure your contribution aligns with the project's scope.
+
+Please make sure to add tests with your contribution and to only submit PRs with green tests.
+
+```bash
+uv run pytest
+```
 
 ## License
 
