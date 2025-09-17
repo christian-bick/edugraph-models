@@ -1,4 +1,4 @@
-# Imagine Models
+# EduGraph Models
 
 This project provides tools for generating models related to classification and embedding generation with
 the [EduGraph competency ontology](https://github.com/christian-bick/edugraph-ontology). 
